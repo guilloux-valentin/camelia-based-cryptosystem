@@ -1,61 +1,4 @@
-import os, prompt
-
-
-def main(): #programme principal
-    print ("Bonjour ô maitre ! Que souhaitez vous faire aujourd'hui ?")
-    print ("->1<- Générer des couples de clés publiques / privées.")
-    print ("->2<- Générer un certificat.")
-    print ("->3<- Vérifier la validité d'un certificat.")
-    print ("->4<- Partager la clé secrète.")
-    print ("->5<- Chiffrer un message.")
-    print ("->6<- Signer un message.")
-    print ("->7<- Vérifier une signature.")
-    print ("->8<- Toutes les étapes")
-    print ("->9<- Terminer")
-    response = prompt.integer(prompt="Choisisez votre action : ")
-    if ( response == 1 ):
-            print ("1")
-            main()
-    elif ( response == 2 ):
-            print ("2")
-            main()
-    elif ( response == 3 ):
-            print ("3")
-            main()
-    elif ( response == 4 ):
-            print ("4")
-            main()
-    elif ( response == 5 ):
-            print ("5")
-            main()
-    elif ( response == 6 ):
-            print ("6")
-            main()
-    elif ( response == 7 ):
-            print ("7")
-            main()
-    elif ( response == 8 ):
-            print ("8")
-            main()
-    elif ( response == 9 ):
-            print ("Fin")
-    else:
-        main()
-
-
-#main() #programme principal
-
-#RoadMap
-
-#key_schedule(K): #return Ka,Kb,Kr,Kl,ke,k,kw
-#encrypt(M,D1,D2): #return cipher
-
-
-##TODO:
-
-#feistel(fin,Ke): #return fout
-#sbox(num,SBoxinput)
-#feistel_inv()
+import os, prompt, secrets, string
 
 MASK8   = 0xff
 MASK32  = 0xffffffff
@@ -69,10 +12,17 @@ Sigma4 = 0x54FF53A5F1D36F1C
 Sigma5 = 0x10E527FADE682D1D
 Sigma6 = 0xB05688C2B3E6C1FD
 
+def generate_keys():
+    private_key = 0x0123456789abcdeffedcba9876543210
+    public_key = 0
+    return {'private_key': private_key, 'public_key': public_key }
+
+def byte_xor(ba1, ba2):
+    return bytes([_a ^ _b for _a, _b in zip(ba1, ba2)])
 
 
-def rotate_left(n,d,tot_Bits): #This function is used to rotate the number n by d bits in the left direction
-    result = (n << d) | (n >> (tot_Bits - d))
+def rotate_left(n,d,tot_bits): #This function is used to rotate the number n by d bits in the left direction
+    result = (n << d) | (n >> (tot_bits - d))
     return result
 
 
@@ -170,13 +120,13 @@ def key_schedule(K, key_length): #K as a 128 bits binary number
         kw = [kw1,kw2,kw3,kw4]
         k = [k1,k2,k3,k4,k5,k6,k7,k8,k9,k10,k11,k12,k13,k14,k15,k16,k17,k18,k19,k20,k21,k22,k23,k24]
         ke = [ke1,ke2,ke3,ke4,ke5,ke6]
-    return KA,KB,KR,KL,ke,k,kw
+    return {'KA': KA, 'KB': KB ,'KR': KR, 'KL' : KL, 'ke' : ke, 'k' : k , 'kw' : kw}
 
 def encrypt(M, kw, ke, k ):
-                                #indicies are lowered to minus 1 to improve readability
+                            #indicies are lowered to minus 1 to improve readability
     D1 = M >> 64
     D2 = M & MASK64
-    D1 = D1 ^ kw[1-1]          # Prewhitening
+    D1 = D1 ^ kw[1-1]       # Prewhitening
     D2 = D2 ^ kw[2-1]
     D2 = D2 ^ F(D1, k[1-1])     # Round 1
     D1 = D1 ^ F(D2, k[2-1])     # Round 2
@@ -207,7 +157,7 @@ def encrypt(M, kw, ke, k ):
     return C
 
 def decrypt(C, kw, ke, k):
-                                                #indicies are lowered to minus 1 to improve readability
+                        #indicies are lowered to minus 1 to improve readability
     if (len(ke) == 4): #128bits key
         kw[1-1], kw[3-1] = kw[3-1], kw[1-1]
         kw[2-1], kw[4-1] = kw[4-1], kw[2-1]
@@ -240,4 +190,163 @@ def decrypt(C, kw, ke, k):
         ke[1-1], ke[6-1] = ke[6-1], ke[1-1]
         ke[2-1], ke[5-1] = ke[5-1], ke[2-1]
     return encrypt(C, kw, ke, k )
+
+
+
+def main(): #programme principal
+    print ("Bonjour ô maitre ! Que souhaitez vous faire aujourd'hui ?")
+    print ("->1<- Générer des couples de clés publiques / privées.")
+    print ("->2<- Générer un certificat.")
+    print ("->3<- Vérifier la validité d'un certificat.")
+    print ("->4<- Partager la clé secrète.")
+    print ("->5<- Chiffrer un message.")
+    print ("->6<- Signer un message.")
+    print ("->7<- Vérifier une signature.")
+    print ("->8<- Toutes les étapes")
+    print ("->9<- Terminer")
+    response = prompt.integer(prompt="Choisisez votre action : ")
+    if ( response == 1 ):
+        print(generate_keys())
+    elif ( response == 2 ):
+        print ("2")
+        main()
+    elif ( response == 3 ):
+        print ("3")
+        main()
+    elif ( response == 4 ):
+        print ("4")
+        main()
+    elif ( response == 5 ):
+        src = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\message.dat", "rb") # source file for reading (r)b
+        dst = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\cipher.dat", "wb")  # cipher destination file for writing (w)b
+        print ("->1<- ECB Electronic Code Book")
+        print ("->2<- CBC Cipher Block Chaining")
+        print ("->3<- PCBC Propagated Cipher Block Chaining")
+        response_encryption = prompt.integer(prompt="Choisisez votre mode de chiffrement : ")
+        if ( response_encryption == 1 ): #Electronic Code Book
+            private_key = generate_keys()['private_key']
+            try:
+                private_key
+            except NameError:
+                print("La clé n'a pas été définie :")
+            else:
+                try:
+
+                    record = src.read( 16 ) # Read a record from source file
+                                            # 16 Bytes (octet) = 128 bit (M length)
+                    while record :
+                        print( record )
+                        #k = key_schedule(private_key,128)[k]
+                        #ke = key_schedule(private_key,128)[ke]
+                        #kw = key_schedule(private_key,128)[kw]
+                        #encypted_record = encrypt( record, k, ke, kw )
+                        dst.write( record )
+                        record = src.read( 16 )
+                except IOError:
+                    # Your error handling here
+                    # Nothing for this example
+                    pass
+                finally:
+                    src.close()
+                    dst.close()
+                main()
+        elif ( response_encryption == 2 ): #Cipher Block Chaining
+            private_key = generate_keys()['private_key']
+            try:
+                private_key
+            except NameError:
+                print("La clé n'a pas été définie :")
+            else:
+                try:
+                    #initialization vector is a 16 Byte (16 octet, 128 bit) string
+                    initialization_vector = secrets.token_bytes(16)
+                    print(initialization_vector)
+                    record = src.read( 16 ) # Read a record from source file
+                                            # 16 Bytes  = 128 bit (M length)
+                    print( record )
+                    record = byte_xor(initialization_vector,record)
+                    while record :
+                        print( record )
+                        #k = key_schedule(private_key,128)[k]
+                        #ke = key_schedule(private_key,128)[ke]
+                        #kw = key_schedule(private_key,128)[kw]
+                        #encypted_record = encrypt( record, k, ke, kw )
+                        dst.write( encypted_record )
+
+                        record = byte_xor(src.read( 16 ),encrypted_record)
+                except IOError:
+                    # Your error handling here
+                    # Nothing for this example
+                    pass
+                finally:
+                    src.close()
+                    dst.close()
+                main()
+        elif ( response_encryption == 3 ): #Propagated Cipher Block Chaining
+            private_key = generate_keys()['private_key']
+            try:
+                private_key
+            except NameError:
+                print("La clé n'a pas été définie :")
+            else:
+                try:
+                    initialization_vector = secrets.token_bytes(16) #Return a random byte string containing nbytes number of bytes.
+                    record = src.read( 16 ) # Read a record from source file
+                                            # 16 Byte (octet) = 128 bit (M length)
+                    first_xor = byte_xor(initialization_vector,record)
+                    while record :
+                        print( record )
+                        #k = key_schedule(private_key,128)[k]
+                        #ke = key_schedule(private_key,128)[ke]
+                        #kw = key_schedule(private_key,128)[kw]
+                        encypted_record = encrypt( first_xor, k, ke, kw )
+                        first_xor = byte_xor( record,encypted_record )
+                        dst.write( encrypted_record )
+                        record = src.read( 16 )
+
+                except IOError:
+                    # Your error handling here
+                    # Nothing for this example
+                    pass
+                finally:
+                    src.close()
+                    dst.close()
+                main()
+
+    elif ( response == 6 ):
+            print ("6")
+            main()
+    elif ( response == 7 ):
+            print ("7")
+            main()
+    elif ( response == 8 ):
+            print ("8")
+            main()
+    elif ( response == 9 ):
+            print ("Fin")
+    else:
+        main()
+
+
+main() #programme principal
+
+#RoadMap
+
+#key_schedule(K): #return Ka,Kb,Kr,Kl,ke,k,kw
+#encrypt(M,D1,D2): #return cipher
+
+
+##TODO:
+
+#feistel(fin,Ke): #return fout
+#sbox(num,SBoxinput)
+#feistel_inv()
+
+
+
+
+
+#def fileOperation(mode,action):
+
+
 

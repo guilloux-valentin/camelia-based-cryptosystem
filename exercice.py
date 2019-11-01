@@ -72,6 +72,60 @@ def rabinMiller(n, k): #retourne True si number passe k rounds du test de primal
             return False
     return True
 
+def premier(n):
+    if n == 1:
+        return False
+    d = 2
+    while d**2 <= n and n%d!=0:
+        d = d+1
+    if d**2 > n:
+        return n
+    else:
+        return d
+
+##CT : O(sqrt(n))
+
+def plus_petit_diviseur_premier(n):
+    for i in range (2,(n//2)+1):
+        if (premier(i)==True) and (n%i==0):
+             return i
+
+print(plus_petit_diviseur_premier(6))
+
+def factoris_premier(n):
+    i = 2
+    l = []
+    résultat = 1
+    résultat2 = 1
+    while résultat < n:
+        if premier(i) == True:
+            résultat = résultat * i
+            if résultat <= n//2:
+                l.append(i)
+            elif résultat < n and résultat > n//2:
+                i = i + 1
+                l.append(i)
+            else:
+                i = i + 1
+        else:
+            i = i + 1
+    for j in range (len(l)):
+        résultat2 = résultat2 * (l[j])
+    if résultat2 == n:
+        return l
+
+
+
+def factor(n):
+    l = []
+    nombre = n
+    while nombre != 1:
+        l.append(premier(nombre))
+        nombre = (nombre)//(premier(nombre))
+    return l
+
+print(factor(172))
+
 
 
 print(isPrime(14897,'Fermat'))

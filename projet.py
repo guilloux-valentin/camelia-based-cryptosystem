@@ -124,6 +124,10 @@ def FLINV(FLINV_IN, KE):
 def encrypt_fonction(mode):
     if ( mode == "text" ):
         text_to_cipher = prompt.string(prompt="Saisir le texte à chiffrer : ")
+        print ("->1<- 128 bits")
+        print ("->2<- 192 bits")
+        print ("->3<- 256 bits")
+        key_lenght = prompt.integer(prompt="Saisir la longeur de la clef : ")
         print ("->1<- ECB Electronic Code Book")
         print ("->2<- CBC Cipher Block Chaining")
         print ("->3<- PCBC Propagated Cipher Block Chaining")
@@ -135,18 +139,33 @@ def encrypt_fonction(mode):
             except NameError:
                 print("La clé n'a pas été définie :")
             else:
-                k = key_schedule(private_key,128)['k']
-                ke = key_schedule(private_key,128)['ke']
-                kw = key_schedule(private_key,128)['kw']
+                if ( key_lenght == 1 ): #128 bits
+                    k = key_schedule(private_key,128)['k']
+                    ke = key_schedule(private_key,128)['ke']
+                    kw = key_schedule(private_key,128)['kw']
+                elif ( key_lenght == 2 ):
+                    k = key_schedule(private_key,192)['k']
+                    ke = key_schedule(private_key,192)['ke']
+                    kw = key_schedule(private_key,192)['kw']
+                elif ( key_lenght == 3 ):
+                    k = key_schedule(private_key,256)['k']
+                    ke = key_schedule(private_key,256)['ke']
+                    kw = key_schedule(private_key,256)['kw']
                 encrypted_text = ""
                 text_to_cipher = text_to_cipher.encode('utf-8')
+                bytes_count = len(text_to_cipher)
+                print ( bytes_count )
                 text_to_cipher = int.from_bytes(text_to_cipher, byteorder='big')
                 encrypted_text = encrypt( text_to_cipher , kw, ke, k )
-                encrypted_text = encrypted_text.to_bytes(16, byteorder='big')
+
+                encrypted_text = encrypted_text.to_bytes(32, byteorder='big')
+                print ()
                 print( "Texte chiffré : ")
-                print( encrypted_text )
+                print( encrypted_text.hex(' ') )
+                print ()
                 print( "Base64 : "  )
                 print( base64.b64encode(encrypted_text) )
+                print ()
                 main()
         elif ( response_encryption == 2 ): #Cipher Block Chaining
             private_key = generate_keys()['private_key']
@@ -155,9 +174,18 @@ def encrypt_fonction(mode):
             except NameError:
                 print("La clé n'a pas été définie :")
             else:
-                k = key_schedule(private_key,128)['k']
-                ke = key_schedule(private_key,128)['ke']
-                kw = key_schedule(private_key,128)['kw']
+                if ( key_lenght == 1 ): #128 bits
+                    k = key_schedule(private_key,128)['k']
+                    ke = key_schedule(private_key,128)['ke']
+                    kw = key_schedule(private_key,128)['kw']
+                elif ( key_lenght == 2 ):
+                    k = key_schedule(private_key,192)['k']
+                    ke = key_schedule(private_key,192)['ke']
+                    kw = key_schedule(private_key,192)['kw']
+                elif ( key_lenght == 3 ):
+                    k = key_schedule(private_key,256)['k']
+                    ke = key_schedule(private_key,256)['ke']
+                    kw = key_schedule(private_key,256)['kw']
 
                 for i in range (len(text_to_cipher)):
                     encrypted_text[i] = char(encrypt( ord(text_to_cipher[i]) , kw, ke, k ))
@@ -171,22 +199,34 @@ def encrypt_fonction(mode):
             except NameError:
                 print("La clé n'a pas été définie :")
             else:
-                k = key_schedule(private_key,128)['k']
-                ke = key_schedule(private_key,128)['ke']
-                kw = key_schedule(private_key,128)['kw']
+                if ( key_lenght == 1 ): #128 bits
+                    k = key_schedule(private_key,128)['k']
+                    ke = key_schedule(private_key,128)['ke']
+                    kw = key_schedule(private_key,128)['kw']
+                elif ( key_lenght == 2 ):
+                    k = key_schedule(private_key,192)['k']
+                    ke = key_schedule(private_key,192)['ke']
+                    kw = key_schedule(private_key,192)['kw']
+                elif ( key_lenght == 3 ):
+                    k = key_schedule(private_key,256)['k']
+                    ke = key_schedule(private_key,256)['ke']
+                    kw = key_schedule(private_key,256)['kw']
                 for i in range (len(text_to_cipher)):
                     encrypted_text[i] = encrypt( text_to_cipher[i] , kw, ke, k )
                 print(encrypted_text)                                                   ##TODO
                 main()
-
-
     elif ( mode == "binary" ):
         src = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\message.dat", "rb") # source file for reading (r)b
         dst = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\cipher.dat", "wb")  # cipher destination file for writing (w)b
+        key_lenght = prompt.integer(prompt="Saisir la longeur de la clef : ")
+        print ("->1<- 128 bits")
+        print ("->2<- 192 bits")
+        print ("->3<- 256 bits")
+        response_encryption = prompt.integer(prompt="Choisisez votre mode de chiffrement : ")
         print ("->1<- ECB Electronic Code Book")
         print ("->2<- CBC Cipher Block Chaining")
         print ("->3<- PCBC Propagated Cipher Block Chaining")
-        response_encryption = prompt.integer(prompt="Choisisez votre mode de chiffrement : ")
+
         if ( response_encryption == 1 ): #Electronic Code Book
             private_key = generate_keys()['private_key']
             try:
@@ -199,9 +239,18 @@ def encrypt_fonction(mode):
                                             # 16 Bytes (octet) = 128 bit (M length)
                     while record :
                         #print( record )
-                        k = key_schedule(private_key,128)['k']
-                        ke = key_schedule(private_key,128)['ke']
-                        kw = key_schedule(private_key,128)['kw']
+                        if ( key_lenght == 1 ): #128 bits
+                            k = key_schedule(private_key,128)['k']
+                            ke = key_schedule(private_key,128)['ke']
+                            kw = key_schedule(private_key,128)['kw']
+                        elif ( key_lenght == 2 ):
+                            k = key_schedule(private_key,192)['k']
+                            ke = key_schedule(private_key,192)['ke']
+                            kw = key_schedule(private_key,192)['kw']
+                        elif ( key_lenght == 3 ):
+                            k = key_schedule(private_key,256)['k']
+                            ke = key_schedule(private_key,256)['ke']
+                            kw = key_schedule(private_key,256)['kw']
                         Message = int.from_bytes(record, byteorder='big')
                         encrypted_message = encrypt( Message, kw, ke, k )
                         encrypted_record = encrypted_message.to_bytes(16, byteorder ='big', signed=False)
@@ -231,9 +280,18 @@ def encrypt_fonction(mode):
                     #print( record )
                     record = byte_xor(initialization_vector,record)
                     while record :
-                        k = key_schedule(private_key,128)['k']
-                        ke = key_schedule(private_key,128)['ke']
-                        kw = key_schedule(private_key,128)['kw']
+                        if ( key_lenght == 1 ): #128 bits
+                            k = key_schedule(private_key,128)['k']
+                            ke = key_schedule(private_key,128)['ke']
+                            kw = key_schedule(private_key,128)['kw']
+                        elif ( key_lenght == 2 ):
+                            k = key_schedule(private_key,192)['k']
+                            ke = key_schedule(private_key,192)['ke']
+                            kw = key_schedule(private_key,192)['kw']
+                        elif ( key_lenght == 3 ):
+                            k = key_schedule(private_key,256)['k']
+                            ke = key_schedule(private_key,256)['ke']
+                            kw = key_schedule(private_key,256)['kw']
                         Message = int.from_bytes(record, byteorder='big')
                         encrypted_message = encrypt( Message, kw, ke, k )
                         encrypted_record = encrypted_message.to_bytes(16, byteorder ='big', signed=False)
@@ -260,9 +318,18 @@ def encrypt_fonction(mode):
                                             # 16 Byte (octet) = 128 bit (M length)
                     first_xor = byte_xor(initialization_vector,record)
                     while record :
-                        k = key_schedule(private_key,128)['k']
-                        ke = key_schedule(private_key,128)['ke']
-                        kw = key_schedule(private_key,128)['kw']
+                        if ( key_lenght == 1 ): #128 bits
+                            k = key_schedule(private_key,128)['k']
+                            ke = key_schedule(private_key,128)['ke']
+                            kw = key_schedule(private_key,128)['kw']
+                        elif ( key_lenght == 2 ):
+                            k = key_schedule(private_key,192)['k']
+                            ke = key_schedule(private_key,192)['ke']
+                            kw = key_schedule(private_key,192)['kw']
+                        elif ( key_lenght == 3 ):
+                            k = key_schedule(private_key,256)['k']
+                            ke = key_schedule(private_key,256)['ke']
+                            kw = key_schedule(private_key,256)['kw']
                         Message = int.from_bytes(first_xor, byteorder='big')
                         encrypted_message = encrypt( Message, kw, ke, k )
                         encrypted_record = encrypted_message.to_bytes(16, byteorder ='big', signed=False)
@@ -468,40 +535,88 @@ def key_schedule(K, key_length): #K as a 128 bits binary number
     return {'KA': KA, 'KB': KB ,'KR': KR, 'KL' : KL, 'ke' : ke, 'k' : k , 'kw' : kw}
 
 def encrypt(M, kw, ke, k ):
-    #print(k)
+    print(len(k))
+    if (len(k) == 18): #128bit key
                             #indicies are lowered to minus 1 to improve readability
-    D1 = M >> 64
-    D2 = M & MASK64
+        D1 = M >> 64
+        D2 = M & MASK64
 
-    D1 = D1 ^ kw[1-1]       # Prewhitening
-    D2 = D2 ^ kw[2-1]
-    D2 = D2 ^ F(D1, k[1-1])     # Round 1
-    D1 = D1 ^ F(D2, k[2-1])     # Round 2
-    D2 = D2 ^ F(D1, k[3-1])     # Round 3
-    D1 = D1 ^ F(D2, k[4-1])     # Round 4
-    D2 = D2 ^ F(D1, k[5-1])     # Round 5
-    D1 = D1 ^ F(D2, k[6-1])     # Round 6
-    D1 = FL   (D1, ke[1-1])     # FL
-    D2 = FLINV(D2, ke[2-1])     # FLINV
-    D2 = D2 ^ F(D1, k[7-1])     # Round 7
-    D1 = D1 ^ F(D2, k[8-1])     # Round 8
-    D2 = D2 ^ F(D1, k[9-1])     # Round 9
-    D1 = D1 ^ F(D2, k[10-1])    # Round 10
-    D2 = D2 ^ F(D1, k[11-1])    # Round 11
-    D1 = D1 ^ F(D2, k[12-1])    # Round 12
-    D1 = FL   (D1, ke[3-1])     # FL
-    D2 = FLINV(D2, ke[4-1])     # FLINV
-    D2 = D2 ^ F(D1, k[13-1])    # Round 13
-    D1 = D1 ^ F(D2, k[14-1])    # Round 14
-    D2 = D2 ^ F(D1, k[15-1])    # Round 15
-    D1 = D1 ^ F(D2, k[16-1])    # Round 16
-    D2 = D2 ^ F(D1, k[17-1])    # Round 17
-    D1 = D1 ^ F(D2, k[18-1])    # Round 18
-    D2 = D2 ^ kw[3-1]           # Postwhitening
-    D1 = D1 ^ kw[4-1]
-    C = (D2 << 64) | D1
+        D1 = D1 ^ kw[1-1]       # Prewhitening
+        D2 = D2 ^ kw[2-1]
+        D2 = D2 ^ F(D1, k[1-1])     # Round 1
+        D1 = D1 ^ F(D2, k[2-1])     # Round 2
+        D2 = D2 ^ F(D1, k[3-1])     # Round 3
+        D1 = D1 ^ F(D2, k[4-1])     # Round 4
+        D2 = D2 ^ F(D1, k[5-1])     # Round 5
+        D1 = D1 ^ F(D2, k[6-1])     # Round 6
+        D1 = FL   (D1, ke[1-1])     # FL
+        D2 = FLINV(D2, ke[2-1])     # FLINV
+        D2 = D2 ^ F(D1, k[7-1])     # Round 7
+        D1 = D1 ^ F(D2, k[8-1])     # Round 8
+        D2 = D2 ^ F(D1, k[9-1])     # Round 9
+        D1 = D1 ^ F(D2, k[10-1])    # Round 10
+        D2 = D2 ^ F(D1, k[11-1])    # Round 11
+        D1 = D1 ^ F(D2, k[12-1])    # Round 12
+        D1 = FL   (D1, ke[3-1])     # FL
+        D2 = FLINV(D2, ke[4-1])     # FLINV
+        D2 = D2 ^ F(D1, k[13-1])    # Round 13
+        D1 = D1 ^ F(D2, k[14-1])    # Round 14
+        D2 = D2 ^ F(D1, k[15-1])    # Round 15
+        D1 = D1 ^ F(D2, k[16-1])    # Round 16
+        D2 = D2 ^ F(D1, k[17-1])    # Round 17
+        D1 = D1 ^ F(D2, k[18-1])    # Round 18
+        D2 = D2 ^ kw[3-1]           # Postwhitening
+        D1 = D1 ^ kw[4-1]
+        C = (D2 << 64) | D1
+
+
+    else: #129 256 bit key
+
+        D1 = M >> 64
+        D2 = M & MASK64
+
+
+        D1 = D1 ^ kw[1-1]
+        D2 = D2 ^ kw[2-1]
+        D2 = D2 ^ F(D1, k[1-1])
+        D1 = D1 ^ F(D2, k[2-1])
+        D2 = D2 ^ F(D1, k[3-1])
+        D1 = D1 ^ F(D2, k[4-1])
+        D2 = D2 ^ F(D1, k[5-1])
+        D1 = D1 ^ F(D2, k[6-1])
+        D1 = FL   (D1, ke[1-1])
+        D2 = FLINV(D2, ke[2-1])
+        D2 = D2 ^ F(D1, k[7-1])
+        D1 = D1 ^ F(D2, k[8-1])
+        D2 = D2 ^ F(D1, k[8-1])
+        D1 = D1 ^ F(D2, k[10-1])
+        D2 = D2 ^ F(D1, k[11-1])
+        D1 = D1 ^ F(D2, k[12-1])
+        D1 = FL   (D1, ke[3-1])
+        D2 = FLINV(D2, ke[4-1])
+        D2 = D2 ^ F(D1, k[13-1])
+        D1 = D1 ^ F(D2, k[14-1])5
+        D2 = D2 ^ F(D1, k[15-1])
+        D1 = D1 ^ F(D2, k[16-1])
+        D2 = D2 ^ F(D1, k[17-1])
+        D1 = D1 ^ F(D2, k[18-1])
+        D1 = FL   (D1, ke[5-1])
+        D2 = FLINV(D2, ke[6-1])
+        D2 = D2 ^ F(D1, k[19-1])
+        D1 = D1 ^ F(D2, k[20-1])
+        D2 = D2 ^ F(D1, k[20-1])
+        D1 = D1 ^ F(D2, k[22-1])
+        D2 = D2 ^ F(D1, k[23-1])
+        D1 = D1 ^ F(D2, k[24-1])
+        D2 = D2 ^ kw[3-1]
+        D1 = D1 ^ kw[4-1]
+
+        #128-bit ciphertext C is constructed from D1 and D2 as follows.
+
+        C = (D2 << 64) | D1
 
     return C
+
 
 def decrypt(C, kw, ke, k):
                         #indicies are lowered to minus 1 to improve readability
@@ -538,6 +653,32 @@ def decrypt(C, kw, ke, k):
         ke[2-1], ke[5-1] = ke[5-1], ke[2-1]
     return encrypt(C, kw, ke, k )
 
+
+
+class Certificator:
+  def __init__(self, public_key, private_key):
+    self.public_key = public_key
+    self.private_key = private_key
+
+  def sign(public_key):
+    print(" Site public_key signed" )
+
+class Visitor:
+  def __init__(self, public_key, private_key):
+    self.public_key = public_key
+    self.private_key = private_key
+
+  def sign(public_key):
+    print(" Site public_key signed" )
+
+
+class Site:
+  def __init__(self, public_key, private_key):
+    self.public_key = public_key
+    self.private_key = private_key
+
+  def sign(public_key):
+    print(" Site public_key signed" )
 
 
 def main(): #programme principal

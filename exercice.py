@@ -1,4 +1,4 @@
-import os, prompt, math, random
+import os, prompt, math,
 
 def euclide(numberA,numberB):
     return (numberA // numberB, numberA%numberB)
@@ -51,7 +51,6 @@ def fermat(number):
         return False
 
 def rabinMiller(n, k): #retourne True si number passe k rounds du test de primalité de miler rabin (probablement premier)
-
     # Test si n est pair, mais attention, n est premier
     if n == 2 or n == 3:
         return True
@@ -74,7 +73,8 @@ def rabinMiller(n, k): #retourne True si number passe k rounds du test de primal
                     return False
                 j += 1
             if x != n - 1:
-                return False    return True
+                return False
+    return True
 
 def premier(n):
     if n == 1:

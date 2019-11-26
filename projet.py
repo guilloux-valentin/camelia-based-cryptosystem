@@ -1,4 +1,16 @@
-import os, prompt, secrets, string, codecs, sys, base64, random, binascii
+import os
+import prompt
+import secrets
+import string
+import codecs
+import sys
+import base64
+import random
+import binascii
+import math
+import hashlib
+
+from gmpy2 import xmpz, to_binary, invert, powmod, is_prime
 
 from random import randrange
 
@@ -14,15 +26,13 @@ Sigma4 = 0x54FF53A5F1D36F1C
 Sigma5 = 0x10E527FADE682D1D
 Sigma6 = 0xB05688C2B3E6C1FD
 
-
-
-
-
 def SBOX2(x):
         return(rotate_left(SBOX1(x),1,8))
 
+
 def SBOX3(x):
         return rotate_left(SBOX1(x),7,8)
+
 
 def SBOX4(x):
         return SBOX1(rotate_left(x,1,8))
@@ -31,7 +41,6 @@ def SBOX4(x):
 def SBOX1(x):
     #print (hex(x))
     #print("0x{:02x}".format(x))
-
     line = "0x{:02x}".format(x)[2]
     column = "0x{:02x}".format(x)[3]
     dict =     {'0' : {     '0': 112,   '1' : 130,  '2' : 44,   '3' : 236,  '4' : 179,  '5' : 39,   '6' : 192,  '7':229,    '8':228,    '9':133,   'a':87,     'b':53,     'c':234,    'd': 12,    'e':174,    'f':65},
@@ -80,16 +89,14 @@ def SBOX1(x):
 
 def F(F_IN, KE): #fonction de feistel
     x  = F_IN ^ KE
-    t1 =  x >> 56
+    t1 = x >> 56
     t2 = (x >> 48) & MASK8
     t3 = (x >> 40) & MASK8
     t4 = (x >> 32) & MASK8
     t5 = (x >> 24) & MASK8
     t6 = (x >> 16) & MASK8
     t7 = (x >>  8) & MASK8
-    t8 =  x        & MASK8
-
-
+    t8 = x & MASK8
     t1 = SBOX1(t1)
     t2 = SBOX2(t2)
     t3 = SBOX3(t3)
@@ -98,8 +105,6 @@ def F(F_IN, KE): #fonction de feistel
     t6 = SBOX3(t6)
     t7 = SBOX4(t7)
     t8 = SBOX1(t8)
-
-
     y1 = t1 ^ t3 ^ t4 ^ t6 ^ t7 ^ t8
     y2 = t1 ^ t2 ^ t4 ^ t5 ^ t7 ^ t8
     y3 = t1 ^ t2 ^ t3 ^ t5 ^ t6 ^ t8
@@ -108,13 +113,11 @@ def F(F_IN, KE): #fonction de feistel
     y6 = t2 ^ t3 ^ t5 ^ t7 ^ t8
     y7 = t3 ^ t4 ^ t5 ^ t6 ^ t8
     y8 = t1 ^ t4 ^ t5 ^ t6 ^ t7
-
     F_OUT = (y1 << 56) | (y2 << 48) | (y3 << 40) | (y4 << 32) | (y5 << 24) | (y6 << 16) | (y7 <<  8) | y8
 
     # print(" F_OUT  = " )
     # print(bin(F_OUT).zfill(64))
     # print( F_OUT.bit_length() )
-
 
     return F_OUT
 
@@ -144,38 +147,35 @@ def FLINV(FLINV_IN, KE):
     return (y1 << 32) | y2
 
 
-def complete( text_to_cipher ):
+def complete(text_to_cipher):
 
     """complete le texte a chiffrer avec des charactères
     vides en un nombre d'élements égale au multiple de la
     taille de bloc si besoin"""
 
     block_size = 16
-    if ( len(text_to_cipher) % block_size != 0 ): # si le bloc de texte n'est pas de longeur multiple de 16
-        missing_elements_nb = block_size - ( len(text_to_cipher) % block_size ) # il manque donc n elements
-        for i in range( missing_elements_nb ):
+    if (len(text_to_cipher) % block_size != 0 ): # si le bloc de texte n'est pas de longeur multiple de 16
+        missing_elements_nb = block_size - (len(text_to_cipher) % block_size) # il manque donc n elements
+        for i in range(missing_elements_nb):
             text_to_cipher = text_to_cipher + '\0'  # on ajoute donc des charactère NULL (hex 00) pour completer
-    return( text_to_cipher )
+    return(text_to_cipher)
 
-def calculate_block_amount( text_lenght ):
+def calculate_block_amount(text_lenght):
 
-    """
-    calcule le nombre de blocks de 16 bits dans un texte
+    """calcule le nombre de blocks de 16 bits dans un texte
     """
 
     if (text_lenght % 16 == 0):
         return text_lenght//16
     else:
-        return (text_lenght//(16) +1)
+        return (text_lenght//(16) + 1)
 
 def encrypt_fonction(mode):
 
     """touche 5 du menu"""
 
-    if ( mode == "text" ):
-
+    if (mode == 'text'):
         text_to_cipher = prompt.string(prompt="Saisir le texte à chiffrer : ")
-
         print ( )
         print ("->1<- 128 bits")
         print ("->2<- 192 bits")
@@ -191,70 +191,50 @@ def encrypt_fonction(mode):
 
         print ( )
         response_encryption = prompt.integer(prompt="Choisisez votre mode de chiffrement : ")
-
-        if ( response_encryption == 1 ): #Electronic Code Book
-
+        if (response_encryption == 1): #Electronic Code Book
             private_key = generate_keys()['private_key']
             try:
                 private_key
             except NameError:
                 print("La clé n'a pas été définie :")
             else:
-
                 #Préparation des clefs
-
                 if ( key_lenght == 1 ): #128 bits
-
                     key_schedule_tab = key_schedule(private_key,128)
                     k = key_schedule_tab['k']
                     ke = key_schedule_tab['ke']
                     kw = key_schedule_tab['kw']
-
                 elif ( key_lenght == 2 ): #192 bits
-
                     key_schedule_tab = key_schedule(private_key,192)
                     k = key_schedule_tab['k']
                     ke = key_schedule_tab['ke']
                     kw = key_schedule_tab['kw']
-
                 elif ( key_lenght == 3 ):  #256 bits
-
                     key_schedule_tab = key_schedule(private_key,256)
                     k = key_schedule_tab['k']
                     ke = key_schedule_tab['ke']
                     kw = key_schedule_tab['kw']
-
                 #initialisation
-
                 block_size = 16
                 encrypted_text = ""
                 text_to_cipher_block = []
                 encrypted_text_int_list = []
                 decrypted_text_int_list = []
-                text_to_cipher_complete = complete( text_to_cipher )
+                text_to_cipher_complete = complete(text_to_cipher)
                 block_amount = calculate_block_amount( len(text_to_cipher_complete) )
-
                 #chiffrement
-
                 for i in range( block_amount ):
-
                     text_to_cipher_block.append( text_to_cipher_complete[ (block_size*i) : ( block_size*(i+1) ) ])  # on selectionne le kloc situé aux indices [0:16] [16:32]...
                     text_to_cipher_int = int(  text_to_cipher_block[i].encode().hex(), 16  )
                     encrypted_text_int = encrypt( text_to_cipher_int , kw, ke, k ) # on chiffre ce block
                     encrypted_text_int_list.append( encrypted_text_int )    # on l'ajoute à une liste
-
                 print(encrypted_text_int_list)
-
                 #dechiffrement
-
                 for i in range( block_amount ):
-
                     encrypted_text = encrypted_text_int_list[i]
                     decrypted_text_int = decrypt( encrypted_text , kw, ke, k ) # on déchiffre le bloc
                     decrypted_text_int_list.append( decrypted_text_int  )
-
                 #Affichage résultat
-
                 print ()
                 print( "Texte clair (hex) : ")
                 for i in range( block_amount ):
@@ -268,226 +248,163 @@ def encrypt_fonction(mode):
                 for i in range( block_amount ):
                      print( hex( decrypted_text_int_list[i] ) )
                 print ()
-
                 main()
-
         elif ( response_encryption == 2 ): #Cipher Block Chaining
-
-
             private_key = generate_keys()['private_key']
             try:
                 private_key
             except NameError:
                 print("La clé n'a pas été définie :")
             else:
-
                 #preparation des sous-clefs
-
-                if ( key_lenght == 1 ): #128 bits
-
+                if ( key_lenght == 1 ): # 128 bits
                     key_schedule_tab = key_schedule(private_key,128)
                     k = key_schedule_tab['k']
                     ke = key_schedule_tab['ke']
                     kw = key_schedule_tab['kw']
-
-                elif ( key_lenght == 2 ): #192 bits
+                elif ( key_lenght == 2 ): # 192 bits
                     key_schedule_tab = key_schedule(private_key,192)
                     k = key_schedule_tab['k']
                     ke = key_schedule_tab['ke']
                     kw = key_schedule_tab['kw']
-
-                elif ( key_lenght == 3 ):  #256 bits
+                elif ( key_lenght == 3 ):  # 256 bits
                     key_schedule_tab = key_schedule(private_key,256)
                     k = key_schedule_tab['k']
                     ke = key_schedule_tab['ke']
                     kw = key_schedule_tab['kw']
-
-                #initialisation
-
-                block_size = 16
-                encrypted_text = ""
-                text_to_cipher_block = []
-                initialization_vector = secrets.token_bytes(16) # on initialise un vecteur de manière aléatoire, ie. cryptographiquement sécurisé.
-                initialization_vector = int.from_bytes( initialization_vector, "big")
-
-                print( "Initialisation Vector" )
-                print(hex(initialization_vector))
-
-
-                encrypted_text_int_list = []
-                decrypted_text_int_list = []
-                text_to_cipher_complete = complete( text_to_cipher )
-                block_amount = calculate_block_amount( len(text_to_cipher_complete) )
-
-                # Chiffrement du Premier Block
-
-                text_to_cipher_block.append( text_to_cipher_complete[0:16] )
-                text_to_cipher_int = int(  text_to_cipher_block[0].encode().hex(), 16  )
-                text_to_cipher_int = initialization_vector ^ text_to_cipher_int # XOR entre le IV et le plaintext
-                encrypted_text_int = encrypt( text_to_cipher_int , kw, ke, k )
-                encrypted_text_int_list.append( encrypted_text_int )
-
-                # Chiffrement des blocks restants
-
-                for i in range( 1, block_amount ):
-
-                    text_to_cipher_block.append( text_to_cipher_complete[ (block_size*i) : ( block_size*(i+1) ) ])
-                    text_to_cipher_int = int(  text_to_cipher_block[i].encode().hex(), 16  )
-                    encrypted_text_int = encrypt( text_to_cipher_int ^ encrypted_text_int   , kw, ke, k ) # chiffrement du XOR entre le chiffré précédent et le plaintext
-                    encrypted_text_int_list.append( encrypted_text_int )
-
-
-                # Déchiffrement du premier block
-
-                encrypted_text = encrypted_text_int_list[0]
-                print( encrypted_text )
-                decrypted_text_int = decrypt( encrypted_text , kw, ke, k )
-                decrypted_text_int = decrypted_text_int ^ initialization_vector
-                decrypted_text_int_list.append( decrypted_text_int  )
-
-                 # Déchiffrement des blocks restants
-
-                for i in range( 1, block_amount ):
-
-                    encrypted_text_int = encrypted_text_int_list[i]
-
-                    decrypted_text_int = decrypt( encrypted_text_int , kw, ke, k )
-                    previous_encrypted_text_int = encrypted_text_int_list[i-1]
-                    decrypted_text_int = decrypted_text_int ^ previous_encrypted_text_int
-                    decrypted_text_int_list.append( decrypted_text_int  )
-
-
-                #Affichage résultat
-
-                print ()
-                print( "Texte clair (hex) : ")
-                for i in range( block_amount ):
-                    print( text_to_cipher_block[i].encode().hex()  )
-                print ( )
-                print( "Texte chiffré (hex) : ")
-                for i in range( block_amount ):
-                    print( hex(encrypted_text_int_list[i]) )
-                print ()
-                print( "Texte déchiffré (hex) : ")
-                for i in range( block_amount ):
-                     print( hex(decrypted_text_int_list[i]) )
-                print ()
-
-                main()
-
-        elif ( response_encryption == 3 ): # Propagated Cipher Block Chaining
-
-
-            private_key = generate_keys()['private_key']
-
-            try:
-                private_key
-            except NameError:
-                print("La clé n'a pas été définie :")
-            else:
-
-                # Preparation des sous-clefs
-
-                if ( key_lenght == 1 ): #128 bits
-
-                    key_schedule_tab = key_schedule(private_key,128)
-                    k = key_schedule_tab['k']
-                    ke = key_schedule_tab['ke']
-                    kw = key_schedule_tab['kw']
-
-                elif ( key_lenght == 2 ): #192 bits
-
-                    key_schedule_tab = key_schedule(private_key,192)
-                    k = key_schedule_tab['k']
-                    ke = key_schedule_tab['ke']
-                    kw = key_schedule_tab['kw']
-
-                elif ( key_lenght == 3 ):  #256 bits
-
-                    key_schedule_tab = key_schedule(private_key,256)
-                    k = key_schedule_tab['k']
-                    ke = key_schedule_tab['ke']
-                    kw = key_schedule_tab['kw']
-
-                # Initialisation
-
+                # initialisation
                 block_size = 16
                 encrypted_text = ""
                 text_to_cipher_block = []
                 initialization_vector = secrets.token_bytes(16)
-                initialization_vector = int.from_bytes( initialization_vector, "big")
-
+                # on initialise un vecteur de manière aléatoire, ie. cryptographiquement sécurisé.
+                initialization_vector = int.from_bytes(initialization_vector, "big")
                 print( "Initialisation Vector" )
                 print(hex(initialization_vector))
-
-
+                encrypted_text_int_list = []
+                decrypted_text_int_list = []
+                text_to_cipher_complete = complete(text_to_cipher)
+                block_amount = calculate_block_amount(len(text_to_cipher_complete))
+                # Chiffrement du Premier Block
+                text_to_cipher_block.append(text_to_cipher_complete[0:16])
+                text_to_cipher_int = int(text_to_cipher_block[0].encode().hex(), 16)
+                text_to_cipher_int = initialization_vector ^ text_to_cipher_int
+                # XOR entre le IV et le plaintext
+                encrypted_text_int = encrypt(text_to_cipher_int , kw, ke, k)
+                encrypted_text_int_list.append(encrypted_text_int)
+                # Chiffrement des blocks restants
+                for i in range( 1, block_amount ):
+                    text_to_cipher_block.append(text_to_cipher_complete[(block_size*i):( block_size*(i+1))])
+                    text_to_cipher_int = int(text_to_cipher_block[i].encode().hex(), 16)
+                    encrypted_text_int = encrypt(text_to_cipher_int ^ encrypted_text_int, kw, ke, k) # chiffrement du XOR entre le chiffré précédent et le plaintext
+                    encrypted_text_int_list.append(encrypted_text_int)
+                # Déchiffrement du premier block
+                encrypted_text = encrypted_text_int_list[0]
+                print(encrypted_text)
+                decrypted_text_int = decrypt(encrypted_text , kw, ke, k)
+                decrypted_text_int = decrypted_text_int ^ initialization_vector
+                decrypted_text_int_list.append(decrypted_text_int)
+                 # Déchiffrement des blocks restants
+                for i in range(1, block_amount):
+                    encrypted_text_int = encrypted_text_int_list[i]
+                    decrypted_text_int = decrypt(encrypted_text_int , kw, ke, k)
+                    previous_encrypted_text_int = encrypted_text_int_list[i-1]
+                    decrypted_text_int = decrypted_text_int ^ previous_encrypted_text_int
+                    decrypted_text_int_list.append(decrypted_text_int)
+                #Affichage résultat
+                print()
+                print("Texte clair (hex) : ")
+                for i in range( block_amount ):
+                    print(text_to_cipher_block[i].encode().hex())
+                print( )
+                print("Texte chiffré (hex) : ")
+                for i in range(block_amount):
+                    print(hex(encrypted_text_int_list[i]))
+                print ()
+                print("Texte déchiffré (hex) : ")
+                for i in range(block_amount):
+                     print(hex(decrypted_text_int_list[i]))
+                print()
+                main()
+        elif(response_encryption == 3): # Propagated Cipher Block Chaining
+            private_key = generate_private_keys_symetric()['private_key']
+            try:
+                private_key
+            except NameError:
+                print("La clé n'a pas été définie :")
+            else:
+                # Preparation des sous-clefs
+                if ( key_lenght == 1 ): #128 bits
+                    key_schedule_tab = key_schedule(private_key,128)
+                    k = key_schedule_tab['k']
+                    ke = key_schedule_tab['ke']
+                    kw = key_schedule_tab['kw']
+                elif ( key_lenght == 2 ): #192 bits
+                    key_schedule_tab = key_schedule(private_key,192)
+                    k = key_schedule_tab['k']
+                    ke = key_schedule_tab['ke']
+                    kw = key_schedule_tab['kw']
+                elif ( key_lenght == 3 ):  #256 bits
+                    key_schedule_tab = key_schedule(private_key,256)
+                    k = key_schedule_tab['k']
+                    ke = key_schedule_tab['ke']
+                    kw = key_schedule_tab['kw']
+                # Initialisation
+                block_size = 16
+                encrypted_text = ""
+                text_to_cipher_block = []
+                initialization_vector = secrets.token_bytes(16)
+                initialization_vector = int.from_bytes(initialization_vector, "big")
+                print( "Initialisation Vector" )
+                print(hex(initialization_vector))
                 encrypted_text_int_list = []
                 decrypted_text_int_list = []
                 text_to_cipher_complete = complete( text_to_cipher )
-                block_amount = calculate_block_amount( len(text_to_cipher_complete) )
-
+                block_amount = calculate_block_amount(len(text_to_cipher_complete))
                 # Chiffrement du Premier Block
-
-                text_to_cipher_block.append( text_to_cipher_complete[0:16] )
-                text_to_cipher_int = int(  text_to_cipher_block[0].encode().hex(), 16  )
+                text_to_cipher_block.append(text_to_cipher_complete[0:16])
+                text_to_cipher_int = int(text_to_cipher_block[0].encode().hex(), 16)
                 text_to_cipher_int = initialization_vector ^ text_to_cipher_int
-                encrypted_text_int = encrypt( text_to_cipher_int , kw, ke, k )
-                encrypted_text_int_list.append( encrypted_text_int )
-
+                encrypted_text_int = encrypt(text_to_cipher_int , kw, ke, k)
+                encrypted_text_int_list.append(encrypted_text_int)
                 # Chiffrement des blocks restants
-
-                for i in range( 1, block_amount ):
-
-                    text_to_cipher_block.append( text_to_cipher_complete[ (block_size*i) : ( block_size*(i+1) ) ])
-                    text_to_cipher_int = int(  text_to_cipher_block[i].encode().hex(), 16  )
-                    previous_text_to_cipher_int = int(  text_to_cipher_block[i-1].encode().hex(), 16  )
+                for i in range(1, block_amount):
+                    text_to_cipher_block.append(text_to_cipher_complete[(block_size*i):( block_size*(i + 1))])
+                    text_to_cipher_int = int(text_to_cipher_block[i].encode().hex(), 16)
+                    previous_text_to_cipher_int = int(text_to_cipher_block[i-1].encode().hex(), 16)
                     previous_encrypted_text_int = encrypted_text_int_list[i-1]
-                    encrypted_text_int = encrypt( text_to_cipher_int ^ previous_encrypted_text_int ^ previous_text_to_cipher_int   , kw, ke, k )
-                    encrypted_text_int_list.append( encrypted_text_int )
-
+                    encrypted_text_int = encrypt(text_to_cipher_int ^ previous_encrypted_text_int ^ previous_text_to_cipher_int, kw, ke, k)
+                    encrypted_text_int_list.append(encrypted_text_int)
                 # Déchiffrement du premier block
-
                 encrypted_text = encrypted_text_int_list[0]
-                print( encrypted_text )
-                decrypted_text_int = decrypt( encrypted_text , kw, ke, k )
+                print(encrypted_text)
+                decrypted_text_int = decrypt(encrypted_text , kw, ke, k)
                 decrypted_text_int = decrypted_text_int ^ initialization_vector
-                decrypted_text_int_list.append( decrypted_text_int  )
-
+                decrypted_text_int_list.append(decrypted_text_int)
                  # Déchiffrement des blocks restants
-
-                for i in range( 1, block_amount ):
-
+                for i in range(1, block_amount):
                     encrypted_text_int = encrypted_text_int_list[i]
-                    decrypted_text_int = decrypt( encrypted_text_int , kw, ke, k )
-                    previous_plain_text_int = int(  text_to_cipher_block[i-1].encode().hex(), 16  )
+                    decrypted_text_int = decrypt(encrypted_text_int , kw, ke, k)
+                    previous_plain_text_int = int(text_to_cipher_block[i-1].encode().hex(), 16)
                     previous_encrypted_text_int = encrypted_text_int_list[i-1]
                     decrypted_text_int = decrypted_text_int ^ previous_encrypted_text_int ^ previous_plain_text_int
-                    decrypted_text_int_list.append( decrypted_text_int  )
-
-
+                    decrypted_text_int_list.append(decrypted_text_int)
                 #Affichage résultat
-
-                print ()
-                print( "Texte clair (hex) : ")
-                for i in range( block_amount ):
-                    print( text_to_cipher_block[i].encode().hex()  )
-                print ( )
-                print( "Texte chiffré (hex) : ")
+                print()
+                print("Texte clair (hex) : ")
+                for i in range(block_amount):
+                    print(text_to_cipher_block[i].encode().hex()  )
+                print( )
+                print("Texte chiffré (hex) : ")
                 for i in range( block_amount ):
                     print( hex(encrypted_text_int_list[i]) )
                 print ()
-                print( "Texte déchiffré (hex) : ")
+                print("Texte déchiffré (hex) : ")
                 for i in range( block_amount ):
                      print( hex(decrypted_text_int_list[i]) )
-                print ()
-
+                print()
                 main()
-
-
-
-
     elif ( mode == "binary" ):
-
         key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\key.dat", "rb") # source file for the key
         src = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\message.dat", "rb") # source file for reading (r)b
         dst = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\cipher.dat", "wb")  # cipher destination file for writing (w)b
@@ -698,14 +615,166 @@ def encrypt_fonction(mode):
                 main()
 
 
-def generate_keys():
+
+
+def generate_private_keys_symetric():
 
     """Voir le TD correspondant"""
 
     private_key = 0x0123456789abcdeffedcba9876543210
-    public_key = 0
-    return {'private_key': private_key, 'public_key': public_key }
+    return {'private_key': private_key }
 
+
+def generate_p_q(L, N):
+    g = N  # g >= 160
+    n = (L - 1) // g
+    b = (L - 1) % g
+    while True:
+        # generate q
+        while True:
+            s = xmpz(randrange(1, 2 ** (g)))
+            a = sha1(to_binary(s)).hexdigest()
+            zz = xmpz((s + 1) % (2 ** g))
+            z = sha1(to_binary(zz)).hexdigest()
+            U = int(a, 16) ^ int(z, 16)
+            mask = 2 ** (N - 1) + 1
+            q = U | mask
+            if is_prime(q, 20):
+                break
+        # generate p
+        i = 0  # counter
+        j = 2  # offset
+        while i < 4096:
+            V = []
+            for k in range(n + 1):
+                arg = xmpz((s + j + k) % (2 ** g))
+                zzv = sha1(to_binary(arg)).hexdigest()
+                V.append(int(zzv, 16))
+            W = 0
+            for qq in range(0, n):
+                W += V[qq] * 2 ** (160 * qq)
+            W += (V[n] % 2 ** b) * 2 ** (160 * n)
+            X = W + 2 ** (L - 1)
+            c = X % (2 * q)
+            p = X - c + 1  # p = X - (c - 1)
+            if p >= 2 ** (L - 1):
+                if is_prime(p, 10):
+                    return p, q
+            i += 1
+            j += n + 1
+
+def generate_probable_prime_pair_for_DSA(L ,N , seedlen, test_method):
+
+    outlen = 256
+    V = []
+    W = 0
+
+    """ Je dois demander au prof si on doit respecter ce truc
+    if ( (L , N) != (1024, 160) and (L , N) != (2048, 224) and (L , N) != (2048, 256) and ( L , N) != (3072, 160)  ):
+        return "invalid ( L,N ) pair"
+    """
+
+    if ( seedlen < N ):
+        return "invalid seed lenght"
+
+    n = math.ceil(L / outlen) - 1
+    b = L - 1 - ( n * outlen )
+
+    while(1): #extrement dangereux
+        domain_name_seed = secrets.randbits( seedlen )
+        U = pow( int(hashlib.sha256( (domain_name_seed ).to_bytes(seedlen, byteorder='big') ).hexdigest(), 16), 1, 2**(N-1) )
+        q = 2**(N-1) + U + 1 - ( pow(U,1,2) )
+        while ( not(is_prime(q, test_method) ) ):
+            domain_name_seed = secrets.randbits( seedlen )
+            U = pow( int(hashlib.sha256( (domain_name_seed ).to_bytes(seedlen, byteorder='big') ).hexdigest(), 16), 1 , 2**(N-1) )
+            q = 2**( N-1 ) + U + 1 - ( pow(U,1,2) )
+        offset = 1
+        for counter in range( 4*L ):
+            for j in range( n + 1 ):
+                V.append(pow(int(hashlib.sha256( (domain_name_seed + offset + j).to_bytes(seedlen, byteorder='big') ).hexdigest(), 16), 1, 2**seedlen))
+            for i in range( n ):
+                W = W + V[i]*(2**(i*outlen))
+            W = W + pow( V[n],1,2**b )
+            X = W + 2**(L-1)
+            c = pow( X, 1, 2*q )
+            p = X -( c - 1 )
+            if p >= (2 ** (L - 1)):
+                if ( is_prime(p, test_method) ):
+                    return ( p,q )
+                offset = offset + n + 1
+            else:
+                offset = offset + n + 1
+
+
+def DSA_generate_params(L_lenght, N_lenght, test_method):
+
+    """Calcul de p, q, g par persone pour DSA, recomandation avec L=3072 et N = 256
+        test_method = 'Rabin-Miller' , 'Fermat', 'Eratosthene'
+    """
+
+    """ methode naive
+
+    q = generate_prime_number(N_lenght,test_method) # on trouve un q premier de n bits
+    print('Flag 1')
+    p = generate_prime_number(L_lenght,test_method) # on trouve un p premier de L bits
+    print('Flag 2')
+    while ( pow(p-1, 1, q) != 0 ): #tel que p-1 est un multiple de q
+        print('Flag 3')
+        p = generate_prime_number(L_lenght, test_method)
+    """
+    #p_q_pair = generate_probable_prime_pair_for_DSA(L_lenght, N_lenght, 256, test_method)
+    p_q_pair = generate_p_q(1024,256)
+    (p, q) = p_q_pair
+    print(p)
+    print(q)
+    h = secrets.SystemRandom().randrange(2,p-2) #tel que p-1 est un est un multiple de q
+    g = pow( h , (p-1) / q, p) # g = h **(p-1) / q [p]
+    print(p)
+    print(q)
+    print(g)
+    return {'p': p,'q': q,'g': g }
+
+
+
+
+def generate_random_number_for_primality_test(bit_length):
+
+    """
+    Génere un entier d'une suite de bits, typiquement dans notre implementation
+    entre 512 bits (bit de poid fort) et 512 + (1 + 2 + 4 + 8 +....) = 1023 bits
+
+    on applique un masque pour ne garder que les impaires
+
+    """
+
+    h = secrets.randbits(bit_length)
+    h = h | ( (1 << bit_length - 1) | 1)
+    return h
+
+
+def generate_prime_number(bit_length, test_method): #test method = 'Rabin-Miller', 'Fermat', 'eratostene'
+    """
+    On se propose de tester la primalité du nombre aléatoire spécifique généré dans la méthode ci-dessus
+
+    """
+    p = 4 # par definition, 0 et 1 ne sont pas premier, 3 et 2 non plus
+    while not is_prime(p, test_method):
+        p = generate_random_number_for_primality_test(bit_length)
+    return p
+
+
+def generate_public_private_keys_asymetric(p, q , g):
+
+    """on retourne x,y a partir du set de parametre p, q, g"""
+
+    """On genere un entier aléatoire x dans [1,q-1]"""
+    x = secrets.SystemRandom.randrange(1,q-1)
+    y = (g**x) % p
+
+
+
+    private_key = 0x0123456789abcdeffedcba9876543210
+    return {'private_key': private_key }
 
 def rotate_left(val, r_bits, max_bits):
 
@@ -722,16 +791,19 @@ def super_prime_generator():
 
 
 
-def isPrime(number, method):
+
+
+
+def is_prime(number, method):
 
     """Regler k le nombre d'iteration de rabin miller"""
 
     if method == ('Eratostene'): #cf NF04
-        return eratostene_2
+        return eratostene_2(number)
     elif method == ('Fermat'):
         return fermat(number)
     elif method == ('Rabin-Miller'):
-        return rabinMiller(number,2)
+        return rabinMiller(number,256)
 
 
 def eratostene(number):
@@ -1046,32 +1118,51 @@ def decrypt(C, kw, ke, k):
 
 
 class Certificator:
-  def __init__(self, public_key, private_key):
-    self.public_key = public_key
-    self.private_key = private_key
+
+  def __init__(self, PublicKey, privateKey):
+    self.publicKey = publicKey
+    self.privateKey = privateKey
+
+  def signPrivc(publicKeyS):
+    print(" Site public_key signed" )
+
+class Alice:
+
+  def __init__(self, certificatorPublicKey, privateKey):
+    self.certificatorPublicKey = certificatorPublicKey
+    self.privateKey = privateKey
 
   def sign(public_key):
     print(" Site public_key signed" )
 
-class Visitor:
-  def __init__(self, public_key, private_key):
-    self.public_key = public_key
-    self.private_key = private_key
+  def requestPublicKey(certificator):
+    self.certificatorPublicKey = certificator.publicKey
 
-  def sign(public_key):
-    print(" Site public_key signed" )
+  def verifyCertificates(Bob):
+      print('OK')
+
+class Bob:
+
+  def __init__(self, privateKey, private_key, certificate):
+
+    self.publicKey = publicKey
+    self.privateKey = privateKey
+    self.certificate = certificate
+
+  def sign(publicKeyS, certificator):
+
+    return certificator.signPrivc(publicKeyS)
 
 
-class Site:
-  def __init__(self, public_key, private_key):
-    self.public_key = public_key
-    self.private_key = private_key
-
-  def sign(public_key):
-    print(" Site public_key signed" )
 
 
 def main(): #programme principal
+    print('  ____ ____  _ ____                                              _           _   _                          __ _                          ')
+    print(' / ___/ ___|/ | ___|    ___ ___  _ __ ___  _ __ ___  _   _ _ __ (_) ___ __ _| |_(_) ___  _ __    ___  ___  / _| |___      ____ _ _ __ ___ ')
+    print('| |  _\\___ \\| |___ \\   / __/ _ \\| \'_ ` _ \\| \'_ ` _ \\| | | | \'_ \\| |/ __/ _` | __| |/ _ \\| \'_ \  / __|/ _ \\| |_| __\\ \\ /\ / / _` | \'__/ _ \\')
+    print('| |_| |___) | |___) | | (_| (_) | | | | | | | | | | | |_| | | | | | (_| (_| | |_| | (_) | | | | \__ \ (_) |  _| |_ \ V  V / (_| | | |  __/')
+    print(' \____|____/|_|____/   \___\___/|_| |_| |_|_| |_| |_|\__,_|_| |_|_|\___\__,_|\__|_|\___/|_| |_| |___/\___/|_|  \__| \_/\_/ \__,_|_|  \___|')
+    print()
     print ("Bonjour ô maitre ! Que souhaitez vous faire aujourd'hui ?")
     print ("->1<- Générer des couples de clés publiques / privées.")
     print ("->2<- Générer un certificat.")
@@ -1100,9 +1191,12 @@ def main(): #programme principal
 
 
     if ( response == 1 ):
-        print(generate_keys())
+
+        print('OK')
+
     elif ( response == 2 ):
-        print ("2")
+
+
         main()
     elif ( response == 3 ):
         print ("3")

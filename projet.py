@@ -9,8 +9,12 @@ import random
 import binascii
 import math
 import hashlib
+import platform
+
+print(platform.architecture())
 
 from gmpy2 import xmpz, to_binary, invert, powmod, is_prime
+from hashlib import sha1
 
 from random import randrange
 
@@ -84,6 +88,10 @@ def SBOX1(x):
 #e0: 114   7 185  85 248 238 172  10  54  73  42 104  60  56 241 164
 #f0:  64  40 211 123 187 201  67 193  21 227 173 244 119 199 128 158
 
+def generate_keys():
+    private_key = 0x0123456789abcdeffedcba9876543210
+    public_key = 0
+    return {'private_key': private_key, 'public_key': public_key }
 
 
 
@@ -229,6 +237,7 @@ def encrypt_fonction(mode):
                     encrypted_text_int = encrypt( text_to_cipher_int , kw, ke, k ) # on chiffre ce block
                     encrypted_text_int_list.append( encrypted_text_int )    # on l'ajoute à une liste
                 print(encrypted_text_int_list)
+                message.value = encrypted_text_int_list
                 #dechiffrement
                 for i in range( block_amount ):
                     encrypted_text = encrypted_text_int_list[i]
@@ -248,7 +257,6 @@ def encrypt_fonction(mode):
                 for i in range( block_amount ):
                      print( hex( decrypted_text_int_list[i] ) )
                 print ()
-                main()
         elif ( response_encryption == 2 ): #Cipher Block Chaining
             private_key = generate_keys()['private_key']
             try:
@@ -298,6 +306,7 @@ def encrypt_fonction(mode):
                     text_to_cipher_int = int(text_to_cipher_block[i].encode().hex(), 16)
                     encrypted_text_int = encrypt(text_to_cipher_int ^ encrypted_text_int, kw, ke, k) # chiffrement du XOR entre le chiffré précédent et le plaintext
                     encrypted_text_int_list.append(encrypted_text_int)
+                message.value = encrypted_text_int_list
                 # Déchiffrement du premier block
                 encrypted_text = encrypted_text_int_list[0]
                 print(encrypted_text)
@@ -325,7 +334,6 @@ def encrypt_fonction(mode):
                 for i in range(block_amount):
                      print(hex(decrypted_text_int_list[i]))
                 print()
-                main()
         elif(response_encryption == 3): # Propagated Cipher Block Chaining
             private_key = generate_private_keys_symetric()['private_key']
             try:
@@ -375,6 +383,7 @@ def encrypt_fonction(mode):
                     previous_encrypted_text_int = encrypted_text_int_list[i-1]
                     encrypted_text_int = encrypt(text_to_cipher_int ^ previous_encrypted_text_int ^ previous_text_to_cipher_int, kw, ke, k)
                     encrypted_text_int_list.append(encrypted_text_int)
+                message.value = encrypted_text_int_list
                 # Déchiffrement du premier block
                 encrypted_text = encrypted_text_int_list[0]
                 print(encrypted_text)
@@ -403,7 +412,6 @@ def encrypt_fonction(mode):
                 for i in range( block_amount ):
                      print( hex(decrypted_text_int_list[i]) )
                 print()
-                main()
     elif ( mode == "binary" ):
         key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\key.dat", "rb") # source file for the key
         src = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\message.dat", "rb") # source file for reading (r)b
@@ -481,7 +489,7 @@ def encrypt_fonction(mode):
                 finally:
                     src.close()
                     dst.close()
-                main()
+
 
         elif ( response_encryption == 2 ): #Cipher Block Chaining
 
@@ -507,7 +515,6 @@ def encrypt_fonction(mode):
             else:
                 try:
                     # Preparation des sous-clefs
-
                     if ( key_lenght == 1 ): #128 bits
                         key_schedule_tab = key_schedule(private_key,128)
                         k = key_schedule_tab['k']
@@ -523,7 +530,6 @@ def encrypt_fonction(mode):
                         k = key_schedule_tab['k']
                         ke = key_schedule_tab['ke']
                         kw = key_schedule_tab['kw']
-
                     initialization_vector = secrets.token_bytes(16)
                     initialization_vector = int.from_bytes( initialization_vector, "big")
                     print( "Initialisation Vector" )
@@ -547,7 +553,7 @@ def encrypt_fonction(mode):
                 finally:
                     src.close()
                     dst.close()
-                main()
+
         elif ( response_encryption == 3 ): #Propagated Cipher Block Chaining
 
             if ( key_lenght == 1 ):
@@ -612,186 +618,6 @@ def encrypt_fonction(mode):
                 finally:
                     src.close()
                     dst.close()
-                main()
-
-
-
-
-def generate_private_keys_symetric():
-
-    """Voir le TD correspondant"""
-
-    private_key = 0x0123456789abcdeffedcba9876543210
-    return {'private_key': private_key }
-
-
-def generate_p_q(L, N):
-    g = N  # g >= 160
-    n = (L - 1) // g
-    b = (L - 1) % g
-    while True:
-        # generate q
-        while True:
-            s = xmpz(randrange(1, 2 ** (g)))
-            a = sha1(to_binary(s)).hexdigest()
-            zz = xmpz((s + 1) % (2 ** g))
-            z = sha1(to_binary(zz)).hexdigest()
-            U = int(a, 16) ^ int(z, 16)
-            mask = 2 ** (N - 1) + 1
-            q = U | mask
-            if is_prime(q, 20):
-                break
-        # generate p
-        i = 0  # counter
-        j = 2  # offset
-        while i < 4096:
-            V = []
-            for k in range(n + 1):
-                arg = xmpz((s + j + k) % (2 ** g))
-                zzv = sha1(to_binary(arg)).hexdigest()
-                V.append(int(zzv, 16))
-            W = 0
-            for qq in range(0, n):
-                W += V[qq] * 2 ** (160 * qq)
-            W += (V[n] % 2 ** b) * 2 ** (160 * n)
-            X = W + 2 ** (L - 1)
-            c = X % (2 * q)
-            p = X - c + 1  # p = X - (c - 1)
-            if p >= 2 ** (L - 1):
-                if is_prime(p, 10):
-                    return p, q
-            i += 1
-            j += n + 1
-
-def generate_probable_prime_pair_for_DSA(L ,N , seedlen, test_method):
-
-    outlen = 256
-    V = []
-    W = 0
-
-    """ Je dois demander au prof si on doit respecter ce truc
-    if ( (L , N) != (1024, 160) and (L , N) != (2048, 224) and (L , N) != (2048, 256) and ( L , N) != (3072, 160)  ):
-        return "invalid ( L,N ) pair"
-    """
-
-    if ( seedlen < N ):
-        return "invalid seed lenght"
-
-    n = math.ceil(L / outlen) - 1
-    b = L - 1 - ( n * outlen )
-
-    while(1): #extrement dangereux
-        domain_name_seed = secrets.randbits( seedlen )
-        U = pow( int(hashlib.sha256( (domain_name_seed ).to_bytes(seedlen, byteorder='big') ).hexdigest(), 16), 1, 2**(N-1) )
-        q = 2**(N-1) + U + 1 - ( pow(U,1,2) )
-        while ( not(is_prime(q, test_method) ) ):
-            domain_name_seed = secrets.randbits( seedlen )
-            U = pow( int(hashlib.sha256( (domain_name_seed ).to_bytes(seedlen, byteorder='big') ).hexdigest(), 16), 1 , 2**(N-1) )
-            q = 2**( N-1 ) + U + 1 - ( pow(U,1,2) )
-        offset = 1
-        for counter in range( 4*L ):
-            for j in range( n + 1 ):
-                V.append(pow(int(hashlib.sha256( (domain_name_seed + offset + j).to_bytes(seedlen, byteorder='big') ).hexdigest(), 16), 1, 2**seedlen))
-            for i in range( n ):
-                W = W + V[i]*(2**(i*outlen))
-            W = W + pow( V[n],1,2**b )
-            X = W + 2**(L-1)
-            c = pow( X, 1, 2*q )
-            p = X -( c - 1 )
-            if p >= (2 ** (L - 1)):
-                if ( is_prime(p, test_method) ):
-                    return ( p,q )
-                offset = offset + n + 1
-            else:
-                offset = offset + n + 1
-
-
-def DSA_generate_params(L_lenght, N_lenght, test_method):
-
-    """Calcul de p, q, g par persone pour DSA, recomandation avec L=3072 et N = 256
-        test_method = 'Rabin-Miller' , 'Fermat', 'Eratosthene'
-    """
-
-    """ methode naive
-
-    q = generate_prime_number(N_lenght,test_method) # on trouve un q premier de n bits
-    print('Flag 1')
-    p = generate_prime_number(L_lenght,test_method) # on trouve un p premier de L bits
-    print('Flag 2')
-    while ( pow(p-1, 1, q) != 0 ): #tel que p-1 est un multiple de q
-        print('Flag 3')
-        p = generate_prime_number(L_lenght, test_method)
-    """
-    #p_q_pair = generate_probable_prime_pair_for_DSA(L_lenght, N_lenght, 256, test_method)
-    p_q_pair = generate_p_q(1024,256)
-    (p, q) = p_q_pair
-    print(p)
-    print(q)
-    h = secrets.SystemRandom().randrange(2,p-2) #tel que p-1 est un est un multiple de q
-    g = pow( h , (p-1) / q, p) # g = h **(p-1) / q [p]
-    print(p)
-    print(q)
-    print(g)
-    return {'p': p,'q': q,'g': g }
-
-
-
-
-def generate_random_number_for_primality_test(bit_length):
-
-    """
-    Génere un entier d'une suite de bits, typiquement dans notre implementation
-    entre 512 bits (bit de poid fort) et 512 + (1 + 2 + 4 + 8 +....) = 1023 bits
-
-    on applique un masque pour ne garder que les impaires
-
-    """
-
-    h = secrets.randbits(bit_length)
-    h = h | ( (1 << bit_length - 1) | 1)
-    return h
-
-
-def generate_prime_number(bit_length, test_method): #test method = 'Rabin-Miller', 'Fermat', 'eratostene'
-    """
-    On se propose de tester la primalité du nombre aléatoire spécifique généré dans la méthode ci-dessus
-
-    """
-    p = 4 # par definition, 0 et 1 ne sont pas premier, 3 et 2 non plus
-    while not is_prime(p, test_method):
-        p = generate_random_number_for_primality_test(bit_length)
-    return p
-
-
-def generate_public_private_keys_asymetric(p, q , g):
-
-    """on retourne x,y a partir du set de parametre p, q, g"""
-
-    """On genere un entier aléatoire x dans [1,q-1]"""
-    x = secrets.SystemRandom.randrange(1,q-1)
-    y = (g**x) % p
-
-
-
-    private_key = 0x0123456789abcdeffedcba9876543210
-    return {'private_key': private_key }
-
-def rotate_left(val, r_bits, max_bits):
-
-    """fonctionne correctement à présent"""
-
-    return (val << r_bits%max_bits) & (2**max_bits-1) | ((val & (2**max_bits-1)) >> (max_bits-(r_bits%max_bits)))
-
-def super_prime_generator():
-    n = 2 ** 512
-    while ( not( isPrime(n, 'Rabin-Miller' ) and isPrime( 2*n-1, 'Rabin-Miller' ) ) ) :
-        n = n + 1
-    return n
-
-
-
-
-
 
 
 def is_prime(number, method):
@@ -864,6 +690,322 @@ def rabinMiller(n, k): #retourne True si number passe k rounds du test de primal
                 return False
     return True
 
+def prime_factors(n):
+    i = 2
+    factors = []
+    while i*i <= n:
+        if n % i:
+            i = i + 1
+        else:
+            n = n//i
+            factors.append(i)
+    if n>1:
+        factors.append(n)
+    return factors
+
+
+def inverse(a, m):
+    g = pgcd(a, m)
+    if (g != 1):
+        print("L'inverse n'existe pas")
+    else :
+        return pow(a, m - 2, m)
+
+def pgcd(a,b):
+    if (a == 0):
+        return b
+    return pgcd( pow(b,1,a), a)
+
+
+def generate_private_keys_symetric():
+
+    """Voir le TD correspondant"""
+
+    private_key = 0x0123456789abcdeffedcba9876543210
+    return {'private_key': private_key }
+
+
+
+def gen_p_q_DSA(L, N, test_method):
+    print('Generation de p,q...')
+    q = secrets.randbits(N)
+    while not(is_prime(q, test_method)):
+        q = secrets.randbits(N)
+    i = 2**L
+    p = 0
+    while not(is_prime(p, test_method)):
+        i += 1
+        p = q*i + 1
+    return p,q,i
+
+def generate_probable_prime_pair_for_DSA(L ,N , seedlen, test_method):
+    outlen = 256
+    V = []
+    W = 0
+    """ Implementation officielle du NIST décrite dans la norme FIPS 182-4
+    if ( (L , N) != (1024, 160) and (L , N) != (2048, 224) and (L , N) != (2048, 256) and ( L , N) != (3072, 160)  ):
+        return "invalid ( L,N ) pair"
+    """
+    if ( seedlen < N ):
+        return "invalid seed lenght"
+    n = math.ceil(L / outlen) - 1
+    b = L - 1 - ( n * outlen )
+    while(1): #extrement dangereux
+        domain_name_seed = secrets.randbits( seedlen )
+        U = pow( int(hashlib.sha256( (domain_name_seed ).to_bytes(seedlen, byteorder='big') ).hexdigest(), 16), 1, 2**(N-1) )
+        q = 2**(N-1) + U + 1 - ( pow(U,1,2) )
+        while ( not(is_prime(q, test_method) ) ):
+            domain_name_seed = secrets.randbits( seedlen )
+            U = pow( int(hashlib.sha256( (domain_name_seed ).to_bytes(seedlen, byteorder='big') ).hexdigest(), 16), 1 , 2**(N-1) )
+            q = 2**( N-1 ) + U + 1 - ( pow(U,1,2) )
+        offset = 1
+        for counter in range( 4*L ):
+            for j in range( n + 1 ):
+                V.append(pow(int(hashlib.sha256( (domain_name_seed + offset + j).to_bytes(seedlen, byteorder='big') ).hexdigest(), 16), 1, 2**seedlen))
+            for i in range( n ):
+                W = W + V[i]*(2**(i*outlen))
+            W = W + pow( V[n],1,2**b )
+            X = W + 2**(L-1)
+            c = pow( X, 1, 2*q )
+            p = X -( c - 1 )
+            if p >= (2 ** (L - 1)):
+                if ( is_prime(p, test_method) ):
+                    return ( p,q )
+                offset = offset + n + 1
+            else:
+                offset = offset + n + 1
+
+
+
+def sign_el_gamal(message, private_key, p, g):
+    k = secrets.SystemRandom().randrange(1, p - 2)
+    r = pow(g,k,p)
+    hash = (int(sha1(to_binary(xmpz(message))).hexdigest(), 16))
+    s = pow( inverse(k,p - 1)*hash - private_key*r,1 ,p - 1)
+    while (s==0):
+        k = secrets.SystemRandom().randrange(1, p - 2)
+        r = pow(g,k,p)
+        s = pow(inverse(k,p - 1)*hash - private_key*r,1 ,p - 1)
+    return s,r,hash
+
+def sign_dsa(message, private_key, p, q, g):
+    print('Signature en cours...')
+    k = secrets.SystemRandom().randrange(1, q - 1)
+    r = pow( pow(g,k,p) , 1, q)
+    hash = (int(sha1(to_binary(xmpz(message))).hexdigest(), 16))
+    s = pow(inverse(k,q)*(hash + private_key*r),1 ,q )
+    while (r == 0 or s == 0):
+        k = secrets.SystemRandom().randrange(1,q-1)
+        r = pow(pow(g,k,p),1, q)
+        s = pow((inverse(k,q)*hash + private_key*r),1 ,q )
+    return s,r,hash
+
+def sign_dsa_message(message, private_key, p, q, g):
+    print('Signature en cours...')
+    concat = ""
+    for i in range(len(message.value)):
+        concat = concat + hex(message.value[i])[2:]
+    print(concat)
+    print(concat.encode())
+    k = secrets.SystemRandom().randrange(1, q - 1)
+    r = pow( pow(g,k,p) , 1, q)
+    hash = (int(sha1(concat.encode()).hexdigest(), 16))
+    s = pow(inverse(k,q)*(hash + private_key*r),1 ,q )
+    while (r == 0 or s == 0):
+        k = secrets.SystemRandom().randrange(1,q-1)
+        r = pow(pow(g,k,p),1, q)
+        s = pow((inverse(k,q)*hash + private_key*r),1 ,q )
+    return s,r,hash
+
+def H(m):
+    return int(sha1(to_binary(xmpz(message))).hexdigest(), 16)
+
+def validate_sign_el_gamal(s, r, hash, y, p, g):
+    print("validate_sign_el_gamal")
+    a = pow(y,r,p)
+    b = pow(r,s,p)
+
+
+    if ((0 < r < p) and (0 < s < p - 1)):
+        if (pow(g,hash,p) == pow(a*b,1,p)):
+            print("g^H est congru a y^r*r^s")
+            return True
+        else:
+            print("g^H n'est pas congru a y^r*r^s")
+            return False
+    else:
+        print("r ou s out af ranges")
+        return False
+
+
+
+
+
+def validate_sign_dsa(s, r, hash, y, p, q, g):
+    if ( not(0<r<q) or not( 0<s<q) ):
+        return False
+    w = inverse(s,q)
+    u1 = pow(hash*w,1,q)
+    u2 = pow(r*w,1,q)
+    b = pow(y,u2,p)
+    a = pow(g,u1,p)
+    v = pow( pow(a*b,1,p),1,q)
+
+    print("v = " + str(hex(v)))
+    print("r = " + str(hex(r)))
+
+    return v == r
+
+def generate_safe_prime(bit_lenght, test_method):
+
+    """
+    Génére un nombre premier cryptographiquement sécurisé (dit de Sophie-Germain) p tel que 2*p - 1 est également premier. Cette methode est détaillé dans la rfc du protocole d'échange de clef de deffie Helman adapoté par SSH
+    """
+
+    p = generate_prime_number(bit_lenght-1, test_method)
+
+    while (not(is_prime( (2*p + 1), test_method)) and (pow(p,1,12) != 5)):
+        p = generate_prime_number(bit_lenght, test_method)
+    return p
+
+def test_if_generator_naive(alpha,p):
+    prime_factor_list = []
+    prime_factor_list = prime_factors(p)
+    for i in range(0,len()):
+        if (alpha**(p-1/prime_factor_list[i]) == 1):
+            return False
+    return True
+
+def generate_generator_El_Gamal(p):
+    # D'après la RFC de SSH, pour l'échange de clef de deffie Helman, il est recomandé d'uitilser 2 ou 5 comme génerateur ce qui est possible car p est cryptographiquement sécurisé.
+    if (pow(p,1,24) == 11):
+        return 2
+    elif (pow(p,1,10) == 3 or pow(p,1,10) == 7):
+        return 5
+    else:
+        return 2
+
+
+
+def El_Gamal_generate_params(N_lenght, test_method):
+    p = generate_safe_prime(N_lenght, 'Rabin-Miller')
+    # on trouve un generateur g<p tel que g appartient a Z*p
+    # pour cela on pourrais décomposer p-1 en produits de facteurs premiers
+    # et g est générateur ssi l'enseble g**(p-1/facteur_indice_i) est différent de 1
+    # Or ici p est grand on utilise un nombre de sophie germain en s'inpirant de ce qui a été fait pour SSH
+    g = generate_generator_El_Gamal(p)
+    return {'p': p,'g': g }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def DSA_generate_params(L_lenght, N_lenght, test_method):
+
+    """Calcul de p, q, g par persone pour DSA, recomandation avec L=2048 et N = 256
+        test_method = 'Rabin-Miller' , 'Fermat', 'Eratosthene'
+    """
+
+    """ methode naive
+
+    q = generate_prime_number(N_lenght,test_method) # on trouve un q premier de n bits
+    print('Flag 1')
+    p = generate_prime_number(L_lenght,test_method) # on trouve un p premier de L bits
+    print('Flag 2')
+    while ( pow(p-1, 1, q) != 0 ): #tel que p-1 est un multiple de q
+        print('Flag 3')
+        p = generate_prime_number(L_lenght, test_method)
+    """
+
+    #p_q_pair = generate_probable_prime_pair_for_DSA(L_lenght, N_lenght, 256, test_method)
+    #p_q_pair = generate_probable_prime_pair_for_DSA(L_lenght,N_lenght, 256, 'Rabin-Miller')
+    p_q_pair = gen_p_q_DSA(L_lenght,N_lenght, 'Rabin-Miller')
+    (p, q, i) = p_q_pair[0],p_q_pair[1],p_q_pair[2]
+    h = secrets.SystemRandom().randrange(2,p-2) #tel que p-1 est un est un multiple de q
+    g = pow( h , i, p) # g = h **(p-1) / q [p]
+
+
+    return {'p': p,'q': q,'g': g }
+
+
+
+
+def generate_random_number_for_primality_test(bit_length):
+
+    """
+    Génere un entier d'une suite de bits, typiquement dans notre implementation
+    entre 512 bits (bit de poid fort) et 512 + (1 + 2 + 4 + 8 +....) = 1023 bits
+
+    on applique un masque pour ne garder que les impaires
+
+    """
+
+    h = secrets.randbits(bit_length)
+    h = h | ( (1 << bit_length - 1) | 1)
+    return h
+
+
+def generate_prime_number(bit_length, test_method): #test method = 'Rabin-Miller', 'Fermat', 'eratostene'
+
+    """
+    On se propose de tester la primalité du nombre aléatoire spécifique généré dans la méthode ci-dessus
+
+    """
+    p = 4 # par definition, 0 et 1 ne sont pas premier, 3 et 2 non plus
+    while not(is_prime(p, test_method)):
+        p = generate_random_number_for_primality_test(bit_length)
+    return p
+
+def generate_public_private_keys_asymetric_el_gamal(p , g):
+
+    """on retourne x,y a partir du set de parametre p, g"""
+
+    """On genere un entier aléatoire x dans [1,p - 1]"""
+
+
+    x = secrets.SystemRandom().randrange(1, p - 2)
+    y = pow(g,x,p)
+
+    return {'private_key': x, 'public_key': y }
+
+def generate_public_private_keys_asymetric_dsa(p, q , g):
+
+    print("Géneration d'un couple de clés privé/publique x,y")
+
+    """on retourne x,y a partir du set de parametre p, q, g"""
+
+    """On genere un entier aléatoire x dans [1,q-1]"""
+
+    p = int(p)
+    q = int(q)
+    g = int(g)
+
+
+
+    x = secrets.SystemRandom().randrange(1, q-1)
+    y = pow(g,x,p)
+
+    return {'private_key': x, 'public_key': y }
+
+def rotate_left(val, r_bits, max_bits):
+
+    """fonctionne correctement à présent"""
+
+    return (val << r_bits%max_bits) & (2**max_bits-1) | ((val & (2**max_bits-1)) >> (max_bits-(r_bits%max_bits)))
+
+
+
+
+
 
 
 
@@ -879,20 +1021,14 @@ def key_schedule(K, key_length):
 
     elif ( key_length ) == 192:
 
-        print("FLAG 1")
 
         KL = K >> 64
 
-        print(" KL = " )
-        print(bin(KL).zfill(64))
-        print( KL.bit_length() )
+
 
 
         KR = ((K & MASK64) << 64) | (~(K & MASK64))& MASK64
 
-        print(" KR = " )
-        print(bin(KR).zfill(64))
-        print( KR.bit_length() )
 
     elif ( key_length ) == 256:
 
@@ -948,7 +1084,6 @@ def key_schedule(K, key_length):
 
     elif ( key_length == 192 or key_length == 256):
 
-        print("FLAG 2")
 
         kw1 = ( rotate_left(KL,0,128) ) >> 64
         kw2 = ( rotate_left(KL,0,128) ) & MASK64
@@ -1117,52 +1252,126 @@ def decrypt(C, kw, ke, k):
 
 
 
+
+
+
+
+class Message:
+
+    def __init__(self, value, signature):
+        self.value = value
+        self.signature = signature
+
+
+    def __str__(self):
+
+        return 'Message : value = ' + str(self.value) + '  signature = ' + str(self.signature)
+
+
+
+
+class Sender:
+
+    def __init__(self, private_key, public_key_certificator):
+        self.public_key_certificator = public_key_certificator
+        self.private_key = private_key
+
+
+    @staticmethod
+    def verify_certificate(system, receiver, certificator_public_key):
+
+        if(validate_sign_dsa(receiver.certificate[0],receiver.certificate[1],receiver.certificate[2] ,certificator_public_key, system.p, system.q, system.g ) == True):
+            print("Certificat valide")
+        else:
+            print("Certificat invalide")
+
+    def send_message(message, key_lenght, mode):
+        print("ok")
+
+    def send_message(key_lenght, mode):
+        print("ok")
+
+    def sign(self, message,system):
+       signature = sign_dsa_message(message, self.private_key , system.p, system.q, system.g)
+       message.signature = signature
+
+    def encrypt(message, private_key):
+        print("ok")
+
+    def request_public_key(certificator):
+      return certificator.public_key
+
+    def requestPublicKey(certificator):
+        self.certificatorPublicKey = certificator.publicKey
+
+
+    def __str__(self):
+        return 'Sender : ' +  '\n' +'private_key = ' + str(self.private_key) +  '\n' + 'public_key_certificator = ' + str(self.public_key_certificator)
+
+
+class Receiver:
+
+    def __init__(self, private_key, public_key, certificate):
+        self.public_key = public_key
+        self.private_key = private_key
+        self.certificate = certificate
+
+
+    def decrypt(Message, key_lenght):
+        return certificator.signPrivc(publicKeyS)
+
+    def ask_signature(public_key):
+        print("ok")
+
+    def sign(private_key, public_key):
+        print("ok")
+
+    @staticmethod
+    def verify_signature(message, sender):
+        if(validate_sign_dsa(message.signature[0],message.signature[1],message.signature[2] ,sender.public_key, system.p, system.q, system.g ) == True):
+            print("Signature valide")
+        else:
+            print("Signature invalide")
+
+
+    def __str__(self):
+
+        if(isinstance(self.certificate, tuple)):
+            hex_certif = []
+            for i in range(len(self.certificate)):
+                hex_certif.append(hex(self.certificate[i]))
+        else:
+            hex_certif = hex(self.certificate)
+
+        return  'Receiver :'+  '\n' +'private_key = ' +  str(hex(self.private_key)) +  '\n' + 'public_key = ' + str(hex(self.public_key)) +  '\n' + 'certificate = ' + str(hex_certif) +  '\n'
+
 class Certificator:
 
-  def __init__(self, PublicKey, privateKey):
-    self.publicKey = publicKey
-    self.privateKey = privateKey
+    def __init__(self, private_key, public_key):
+        self.public_key = public_key
+        self.private_key = private_key
 
-  def signPrivc(publicKeyS):
-    print(" Site public_key signed" )
 
-class Alice:
 
-  def __init__(self, certificatorPublicKey, privateKey):
-    self.certificatorPublicKey = certificatorPublicKey
-    self.privateKey = privateKey
 
-  def sign(public_key):
-    print(" Site public_key signed" )
+    def sign_with_private_key(self, receiver_public_key, system):
+        return sign_dsa(receiver_public_key, self.private_key, system.p, system.q, system.g)
 
-  def requestPublicKey(certificator):
-    self.certificatorPublicKey = certificator.publicKey
+    def __str__(self):
+        return 'Certificator :' +  '\n' + 'private_key = ' + str(hex(self.private_key)) + '\n' +'public_key = ' + str(hex(self.public_key))
 
-  def verifyCertificates(Bob):
-      print('OK')
+class System:
 
-class Bob:
+    def __init__(self, p, q, g):
+        self.p = p
+        self.q = q
+        self.g = g
 
-  def __init__(self, privateKey, private_key, certificate):
-
-    self.publicKey = publicKey
-    self.privateKey = privateKey
-    self.certificate = certificate
-
-  def sign(publicKeyS, certificator):
-
-    return certificator.signPrivc(publicKeyS)
 
 
 
 
 def main(): #programme principal
-    print('  ____ ____  _ ____                                              _           _   _                          __ _                          ')
-    print(' / ___/ ___|/ | ___|    ___ ___  _ __ ___  _ __ ___  _   _ _ __ (_) ___ __ _| |_(_) ___  _ __    ___  ___  / _| |___      ____ _ _ __ ___ ')
-    print('| |  _\\___ \\| |___ \\   / __/ _ \\| \'_ ` _ \\| \'_ ` _ \\| | | | \'_ \\| |/ __/ _` | __| |/ _ \\| \'_ \  / __|/ _ \\| |_| __\\ \\ /\ / / _` | \'__/ _ \\')
-    print('| |_| |___) | |___) | | (_| (_) | | | | | | | | | | | |_| | | | | | (_| (_| | |_| | (_) | | | | \__ \ (_) |  _| |_ \ V  V / (_| | | |  __/')
-    print(' \____|____/|_|____/   \___\___/|_| |_| |_|_| |_| |_|\__,_|_| |_|_|\___\__,_|\__|_|\___/|_| |_| |___/\___/|_|  \__| \_/\_/ \__,_|_|  \___|')
-    print()
     print ("Bonjour ô maitre ! Que souhaitez vous faire aujourd'hui ?")
     print ("->1<- Générer des couples de clés publiques / privées.")
     print ("->2<- Générer un certificat.")
@@ -1173,7 +1382,6 @@ def main(): #programme principal
     print ("->7<- Vérifier une signature.")
     print ("->8<- Toutes les étapes")
     print ("->9<- Terminer")
-
     """
     Test Vector
         key_schedule_tab = key_schedule(0x0123456789abcdeffedcba9876543210,128)
@@ -1185,48 +1393,138 @@ def main(): #programme principal
         print( hex(0x0123456789abcdeffedcba9876543210) )
         print ( hex(encrypted_int) )
     """
-
-
     response = prompt.integer(prompt="Choisisez votre action : ")
+    if (response == 1): # generation de couples de clef public/privé
+        """
+        il s'agit de trouver un q, p, fortement premier et calculer g
+        les paramétres de DSA tel que définit dans la publication du NIST FIPS 186-4
+        Ensuite il est possible de générer par utilisateur des couples clefs publics/privées
+        """
+        params_tab = DSA_generate_params(1024, 160, 'Rabin-Miller')
+        system.p = params_tab['p']
+        system.q = params_tab['q']
+        system.g = params_tab['g']
+        key_tab = generate_public_private_keys_asymetric_dsa(system.p, system.q, system.g)
+        certificator.public_key = key_tab['public_key']
+        certificator.private_key = key_tab['private_key']
+        key_tab_receiver = generate_public_private_keys_asymetric_dsa(system.p,system.q,system.g)
+        receiver.private_key =  key_tab_receiver['private_key']
+        receiver.public_key = key_tab_receiver['public_key']
+        key_tab_sender = generate_public_private_keys_asymetric_dsa(system.p,system.q,system.g)
+        sender.private_key =  key_tab_sender['private_key']
+        sender.public_key = key_tab_sender['public_key']
 
-
-    if ( response == 1 ):
-
-        print('OK')
-
-    elif ( response == 2 ):
+        """
+        params_tab = El_Gamal_generate_params(512, 'Rabin-Miller')
+        system.p = params_tab['p']
+        system.g = params_tab['g']
+        key_tab = generate_public_private_keys_asymetric_el_gamal(system.p, system.g)
+        public_key, private_key = generate_public_private_keys_asymetric_el_gamal(system.p, system.g)
+        certificator.public_key = key_tab['public_key']
+        certificator.private_key = key_tab['private_key']
+        key_tab_sender = generate_public_private_keys_asymetric_el_gamal(system.p,system.g)
+        receiver.private_key =  key_tab_sender['private_key']
+        receiver.public_key = key_tab_sender['public_key']
+        print(str(receiver))
+        print(str(certificator))
+        """
+        print("")
+        print(str(receiver))
+        print("")
+        print(str(sender))
+        print("")
+        print(str(certificator))
+        print("")
+        print(str(message))
+        print("")
 
 
         main()
-    elif ( response == 3 ):
-        print ("3")
+    elif ( response == 2 ): # géneration d'un certificat
+        """
+
+
+        """
+        receiver.certificate = certificator.sign_with_private_key(receiver.public_key,system)
+        print("")
+        print(str(receiver))
+        print("")
+        print(str(sender))
+        print("")
+        print(str(certificator))
+        print("")
+        print(str(message))
+
         main()
-    elif ( response == 4 ):
+    elif ( response == 3 ): # verifier la validité d'un certificat
+        print("Verification...")
+        sender.verify_certificate(system, receiver, certificator.public_key)
+        print("")
+        print(str(receiver))
+        print("")
+        print(str(sender))
+        print("")
+        print(str(certificator))
+        print("")
+        print(str(message))
+        print("")
+        main()
+    elif ( response == 4 ): # partager la clé secrete
         print ("4")
         main()
-    elif ( response == 5 ):
+    elif ( response == 5 ): # chiffrer un message
         read_mode = prompt.integer(prompt="Voulez vous le mode Texte (1) ou Fichier Binaire (2) ? : ")
         if ( read_mode == 1 ):
             encrypt_fonction("text")
         elif ( read_mode == 2 ):
             encrypt_fonction("binary")
-    elif ( response == 6 ):
-        print ("6")
+        print("")
+        print(str(receiver))
+        print("")
+        print(str(sender))
+        print("")
+        print(str(certificator))
+        print("")
+        print(str(message))
+        print("")
         main()
-    elif ( response == 7 ):
-        print ("7")
+    elif ( response == 6 ): # signer un message
+        sender.sign(message,system)
+
+        print("")
+        print(str(receiver))
+        print("")
+        print(str(sender))
+        print("")
+        print(str(certificator))
+        print("")
+        print(str(message))
+        print("")
+
+        main()
+    elif ( response == 7 ):  # verifier la signature du message
+        receiver.verify_signature(message, sender)
         main()
     elif ( response == 8 ):
         print ("8")
         main()
     elif ( response == 9 ):
-        #rint( super_prime_generator() )
         print ("Fin")
     else:
         main()
 
 
 
-
+print('  ____ ____  _ ____                                              _           _   _                          __ _                          ')
+print(' / ___/ ___|/ | ___|    ___ ___  _ __ ___  _ __ ___  _   _ _ __ (_) ___ __ _| |_(_) ___  _ __    ___  ___  / _| |___      ____ _ _ __ ___ ')
+print('| |  _\\___ \\| |___ \\   / __/ _ \\| \'_ ` _ \\| \'_ ` _ \\| | | | \'_ \\| |/ __/ _` | __| |/ _ \\| \'_ \  / __|/ _ \\| |_| __\\ \\ /\ / / _` | \'__/ _ \\')
+print('| |_| |___) | |___) | | (_| (_) | | | | | | | | | | | |_| | | | | | (_| (_| | |_| | (_) | | | | \__ \ (_) |  _| |_ \ V  V / (_| | | |  __/')
+print(' \____|____/|_|____/   \___\___/|_| |_| |_|_| |_| |_|\__,_|_| |_|_|\___\__,_|\__|_|\___/|_| |_| |___/\___/|_|  \__| \_/\_/ \__,_|_|  \___|')
+print()
+message = Message(value = 0, signature = 0)
+system = System(p = 0, q = 0, g = 0)
+sender = Sender(private_key = 0, public_key_certificator = 0)
+receiver = Receiver(private_key = 0, public_key = 0, certificate = 0)
+certificator = Certificator(private_key = 0, public_key = 0)
 
 main() #programme principal

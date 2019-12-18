@@ -1,4 +1,4 @@
-import os, prompt, math,
+import os, prompt, math
 
 def euclide(numberA,numberB):
     return (numberA // numberB, numberA%numberB)

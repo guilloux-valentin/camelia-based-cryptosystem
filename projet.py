@@ -629,7 +629,7 @@ def is_prime(number, method):
     elif method == ('Fermat'):
         return fermat(number)
     elif method == ('Rabin-Miller'):
-        return rabinMiller(number,256)
+        return rabinMiller(number,40)
 
 
 def eratostene(number):
@@ -703,6 +703,21 @@ def prime_factors(n):
         factors.append(n)
     return factors
 
+def trial_division(n,B):
+    a = []
+    while pow(n,1,2) == 0:
+        a.append(2)
+        n //= 2
+    f = 3
+    while f * f <= B * B:
+        if pow(n,1,f) == 0:
+            a.append(f)
+            n //= f
+        else:
+            f += 2
+    if (n != 1):
+        a.append(n)
+    return a
 
 def inverse(a, m):
     g = pgcd(a, m)
@@ -859,14 +874,23 @@ def validate_sign_dsa(s, r, hash, y, p, q, g):
 def generate_safe_prime(bit_lenght, test_method):
 
     """
-    Génére un nombre premier cryptographiquement sécurisé (dit de Sophie-Germain) p tel que 2*p - 1 est également premier. Cette methode est détaillé dans la rfc du protocole d'échange de clef de deffie Helman adapoté par SSH
+    Génére un nombre premier cryptographiquement sécurisé (dit de Sophie-Germain) p tel que 2*p + 1 est également premier. Cette methode est détaillé dans la rfc du protocole d'échange de clef de deffie Helman adapoté par SSH
     """
 
-    p = generate_prime_number(bit_lenght-1, test_method)
-
-    while (not(is_prime( (2*p + 1), test_method)) and (pow(p,1,12) != 5)):
-        p = generate_prime_number(bit_lenght, test_method)
-    return p
+    print("generate safe prime")
+    q = generate_prime_number(bit_lenght-1, test_method)
+    #while  (pow(q,1,12) != 5):
+        #print("genreate safe prime while")
+        #q = generate_prime_number(bit_lenght-1, test_method)
+    print("Calculate p")
+    p = 2*q + 1
+    #while (pow(q,1,3) != 0 and pow(q,1,3) != 1 and pow((q-1)//2,1,3) != 0 and pow((q-1)//2,1,3) != 1 and pow((2*q +1),1,3) != 0 and pow((2*q+1),1,3) != 1):
+    while (not(is_prime( ((q-1)//2), test_method))):
+        while (not(is_prime( (p), test_method))):
+            q = generate_prime_number(bit_lenght-1, test_method)
+            print("Calculate p")
+            p = 2*q + 1
+    return q
 
 def test_if_generator_naive(alpha,p):
     prime_factor_list = []
@@ -876,7 +900,8 @@ def test_if_generator_naive(alpha,p):
             return False
     return True
 
-def generate_generator_El_Gamal(p):
+def generate_generator(p):
+    print("Generate Generator")
     # D'après la RFC de SSH, pour l'échange de clef de deffie Helman, il est recomandé d'uitilser 2 ou 5 comme génerateur ce qui est possible car p est cryptographiquement sécurisé.
     if (pow(p,1,24) == 11):
         return 2
@@ -960,8 +985,9 @@ def generate_prime_number(bit_length, test_method): #test method = 'Rabin-Miller
     On se propose de tester la primalité du nombre aléatoire spécifique généré dans la méthode ci-dessus
 
     """
-    p = 4 # par definition, 0 et 1 ne sont pas premier, 3 et 2 non plus
+    p = generate_random_number_for_primality_test(bit_length)
     while not(is_prime(p, test_method)):
+
         p = generate_random_number_for_primality_test(bit_length)
     return p
 
@@ -1001,6 +1027,9 @@ def rotate_left(val, r_bits, max_bits):
     """fonctionne correctement à présent"""
 
     return (val << r_bits%max_bits) & (2**max_bits-1) | ((val & (2**max_bits-1)) >> (max_bits-(r_bits%max_bits)))
+
+
+
 
 
 
@@ -1275,7 +1304,11 @@ class Sender:
     def __init__(self, private_key, public_key_certificator):
         self.public_key_certificator = public_key_certificator
         self.private_key = private_key
-
+        self.p = 0
+        self.g = 0
+        self.a = 0
+        self.A = 0
+        self.K = 0
 
     @staticmethod
     def verify_certificate(system, receiver, certificator_public_key):
@@ -1298,6 +1331,13 @@ class Sender:
     def encrypt(message, private_key):
         print("ok")
 
+    def send_difie_hellman_params(self, Receiver):
+        Receiver.B = pow(self.g,Receiver.b,self.p)
+
+    def set_private_key(B):
+        self.K = pow(B,a,p)
+
+
     def request_public_key(certificator):
       return certificator.public_key
 
@@ -1306,7 +1346,7 @@ class Sender:
 
 
     def __str__(self):
-        return 'Sender : ' +  '\n' +'private_key = ' + str(self.private_key) +  '\n' + 'public_key_certificator = ' + str(self.public_key_certificator)
+        return 'Sender : ' +  '\n' +'private_key = ' + str(self.private_key)  +  '\n' + 'public_key_certificator = ' + str(self.public_key_certificator)  +  '\n' + ' K =' + str(self.K)
 
 
 class Receiver:
@@ -1315,6 +1355,7 @@ class Receiver:
         self.public_key = public_key
         self.private_key = private_key
         self.certificate = certificate
+        self.b = 0
 
 
     def decrypt(Message, key_lenght):
@@ -1325,6 +1366,12 @@ class Receiver:
 
     def sign(private_key, public_key):
         print("ok")
+
+    def send_B_and_set_private_key(self, Sender):
+        self.b = secrets.SystemRandom().randrange(2,(Sender.p)-2)
+        Sender.K = pow(self.B,Sender.a,Sender.p)
+
+
 
     @staticmethod
     def verify_signature(message, sender):
@@ -1470,7 +1517,18 @@ def main(): #programme principal
         print("")
         main()
     elif ( response == 4 ): # partager la clé secrete
-        print ("4")
+        print("Generation et partage de la clé...")
+        #sender.p = generate_safe_prime(1024, 'Rabin-Miller')
+        sender.p = 179769313486231590772930519078902473361797697894230657273430081157732675805500963132708477322407536021120113879871393357658789768814416622492847430639474124377767893424865485276302219601246094119453082952085005768838150682342462881473913110540827237163350510684586298239947245938479716304835356329624225795083
+        sender.g = generate_generator(sender.p)
+        sender.a = secrets.SystemRandom().randrange(2,sender.p-2) #tel que p-1 est un est un multiple de q
+        sender.A = pow(sender.g , sender.a, sender.p)
+        sender.send_difie_hellman_params(receiver)
+        receiver.send_B_and_set_private_key(sender)
+        print("")
+        print(str(receiver))
+        print("")
+        print(str(sender))
         main()
     elif ( response == 5 ): # chiffrer un message
         read_mode = prompt.integer(prompt="Voulez vous le mode Texte (1) ou Fichier Binaire (2) ? : ")

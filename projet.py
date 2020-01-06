@@ -89,9 +89,19 @@ def SBOX1(x):
 #f0:  64  40 211 123 187 201  67 193  21 227 173 244 119 199 128 158
 
 def generate_keys():
-    private_key = 0x0123456789abcdeffedcba9876543210
-    public_key = 0
-    return {'private_key': private_key, 'public_key': public_key }
+    if (sender.K == 0):
+        private_key = 0x0123456789abcdeffedcba9876543210 # Si on n'a pas de clef secrete de définie, on utilise le vecteur par défaut décrit dans la RFC de Camelia
+        key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\key.dat", "wb") # source file for the key
+        key_file_record =  private_key.to_bytes(16, byteorder ='big', signed=False)
+        key_file.write(key_file_record)
+        key_file.close
+    else:
+        private_key = sender.K
+        key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\key.dat", "wb") # source file for the key
+        key_file_record =  private_key.to_bytes(64, byteorder ='big', signed=False)
+        key_file.write(key_file_record)
+        key_file.close
+    return {'private_key': private_key}
 
 
 
@@ -122,10 +132,6 @@ def F(F_IN, KE): #fonction de feistel
     y7 = t3 ^ t4 ^ t5 ^ t6 ^ t8
     y8 = t1 ^ t4 ^ t5 ^ t6 ^ t7
     F_OUT = (y1 << 56) | (y2 << 48) | (y3 << 40) | (y4 << 32) | (y5 << 24) | (y6 << 16) | (y7 <<  8) | y8
-
-    # print(" F_OUT  = " )
-    # print(bin(F_OUT).zfill(64))
-    # print( F_OUT.bit_length() )
 
     return F_OUT
 
@@ -189,14 +195,11 @@ def encrypt_fonction(mode):
         print ("->2<- 192 bits")
         print ("->3<- 256 bits")
         print ( )
-
         key_lenght = prompt.integer(prompt="Saisir la longeur de la clef : ")
         print ( )
-
         print ("->1<- ECB Electronic Code Book")
         print ("->2<- CBC Cipher Block Chaining")
         print ("->3<- PCBC Propagated Cipher Block Chaining")
-
         print ( )
         response_encryption = prompt.integer(prompt="Choisisez votre mode de chiffrement : ")
         if (response_encryption == 1): #Electronic Code Book
@@ -207,17 +210,20 @@ def encrypt_fonction(mode):
                 print("La clé n'a pas été définie :")
             else:
                 #Préparation des clefs
-                if ( key_lenght == 1 ): #128 bits
+                if(key_lenght == 1): #128 bits
+                    private_key = int(str(hex(private_key))[:33],16)
                     key_schedule_tab = key_schedule(private_key,128)
                     k = key_schedule_tab['k']
                     ke = key_schedule_tab['ke']
                     kw = key_schedule_tab['kw']
                 elif ( key_lenght == 2 ): #192 bits
+                    private_key = int((str(hex(private_key))[:49],16))
                     key_schedule_tab = key_schedule(private_key,192)
                     k = key_schedule_tab['k']
                     ke = key_schedule_tab['ke']
                     kw = key_schedule_tab['kw']
                 elif ( key_lenght == 3 ):  #256 bits
+                    private_key = int((str(hex(private_key))[:65],16))
                     key_schedule_tab = key_schedule(private_key,256)
                     k = key_schedule_tab['k']
                     ke = key_schedule_tab['ke']
@@ -231,32 +237,32 @@ def encrypt_fonction(mode):
                 text_to_cipher_complete = complete(text_to_cipher)
                 block_amount = calculate_block_amount( len(text_to_cipher_complete) )
                 #chiffrement
-                for i in range( block_amount ):
-                    text_to_cipher_block.append( text_to_cipher_complete[ (block_size*i) : ( block_size*(i+1) ) ])  # on selectionne le kloc situé aux indices [0:16] [16:32]...
+                for i in range(block_amount):
+                    text_to_cipher_block.append( text_to_cipher_complete[ (block_size*i) : ( block_size*(i+1) ) ])  # on selectionne le bloc situé aux indices [0:16] [16:32]...
                     text_to_cipher_int = int(  text_to_cipher_block[i].encode().hex(), 16  )
                     encrypted_text_int = encrypt( text_to_cipher_int , kw, ke, k ) # on chiffre ce block
                     encrypted_text_int_list.append( encrypted_text_int )    # on l'ajoute à une liste
                 print(encrypted_text_int_list)
                 message.value = encrypted_text_int_list
                 #dechiffrement
-                for i in range( block_amount ):
+                for i in range(block_amount):
                     encrypted_text = encrypted_text_int_list[i]
                     decrypted_text_int = decrypt( encrypted_text , kw, ke, k ) # on déchiffre le bloc
                     decrypted_text_int_list.append( decrypted_text_int  )
                 #Affichage résultat
-                print ()
+                print()
                 print( "Texte clair (hex) : ")
-                for i in range( block_amount ):
+                for i in range(block_amount):
                     print( text_to_cipher_block[i].encode().hex()  )
                 print ( )
                 print( "Texte chiffré (hex) : ")
-                for i in range( block_amount ):
+                for i in range(block_amount):
                     print( hex(encrypted_text_int_list[i]) )
                 print ()
                 print( "Texte déchiffré (hex) : ")
-                for i in range( block_amount ):
-                     print( hex( decrypted_text_int_list[i] ) )
-                print ()
+                for i in range(block_amount):
+                     print(hex(decrypted_text_int_list[i]))
+                print()
         elif ( response_encryption == 2 ): #Cipher Block Chaining
             private_key = generate_keys()['private_key']
             try:
@@ -266,16 +272,19 @@ def encrypt_fonction(mode):
             else:
                 #preparation des sous-clefs
                 if ( key_lenght == 1 ): # 128 bits
+                    private_key = int(str(hex(private_key))[:33],16)
                     key_schedule_tab = key_schedule(private_key,128)
                     k = key_schedule_tab['k']
                     ke = key_schedule_tab['ke']
                     kw = key_schedule_tab['kw']
                 elif ( key_lenght == 2 ): # 192 bits
+                    private_key = int(str(hex(private_key))[:49],16)
                     key_schedule_tab = key_schedule(private_key,192)
                     k = key_schedule_tab['k']
                     ke = key_schedule_tab['ke']
                     kw = key_schedule_tab['kw']
                 elif ( key_lenght == 3 ):  # 256 bits
+                    private_key = int(str(hex(private_key))[:65],16)
                     key_schedule_tab = key_schedule(private_key,256)
                     k = key_schedule_tab['k']
                     ke = key_schedule_tab['ke']
@@ -335,7 +344,7 @@ def encrypt_fonction(mode):
                      print(hex(decrypted_text_int_list[i]))
                 print()
         elif(response_encryption == 3): # Propagated Cipher Block Chaining
-            private_key = generate_private_keys_symetric()['private_key']
+            private_key = generate_keys()['private_key']
             try:
                 private_key
             except NameError:
@@ -343,16 +352,19 @@ def encrypt_fonction(mode):
             else:
                 # Preparation des sous-clefs
                 if ( key_lenght == 1 ): #128 bits
+                    private_key = int(str(hex(private_key))[:33],16)
                     key_schedule_tab = key_schedule(private_key,128)
                     k = key_schedule_tab['k']
                     ke = key_schedule_tab['ke']
                     kw = key_schedule_tab['kw']
                 elif ( key_lenght == 2 ): #192 bits
+                    private_key = int(str(hex(private_key))[:49],16)
                     key_schedule_tab = key_schedule(private_key,192)
                     k = key_schedule_tab['k']
                     ke = key_schedule_tab['ke']
                     kw = key_schedule_tab['kw']
                 elif ( key_lenght == 3 ):  #256 bits
+                    private_key = int(str(hex(private_key))[:65],16)
                     key_schedule_tab = key_schedule(private_key,256)
                     k = key_schedule_tab['k']
                     ke = key_schedule_tab['ke']
@@ -423,41 +435,30 @@ def encrypt_fonction(mode):
         print ("->3<- 256 bits")
         print()
         key_lenght = prompt.integer(prompt="Saisir la longeur de la clef : ")
-
         print()
         print ("->1<- ECB Electronic Code Book")
         print ("->2<- CBC Cipher Block Chaining")
         print ("->3<- PCBC Propagated Cipher Block Chaining")
         print()
         response_encryption = prompt.integer(prompt="Choisisez votre mode de chiffrement : ")
-
-
         if ( response_encryption == 1 ): #Electronic Code Book
-
+            private_key = generate_keys()['private_key']
             if ( key_lenght == 1 ):
-
                 private_key = key_file.read( 16 )
                 private_key = int.from_bytes(private_key, byteorder='big')
-
             elif ( key_lenght == 2 ):
-
                 private_key = key_file.read( 24 )
                 private_key = int.from_bytes(private_key, byteorder='big')
-
             elif ( key_lenght == 3 ):
-
                 private_key = key_file.read( 32 )
                 private_key = int.from_bytes(private_key, byteorder='big')
-
             try:
                 private_key
             except NameError:
                 print("La clé n'a pas été définie :")
             else:
                 try:
-
                     # Preparation des sous-clefs
-
                     if ( key_lenght == 1 ): #128 bits
                         key_schedule_tab = key_schedule(private_key,128)
                         k = key_schedule_tab['k']
@@ -473,9 +474,7 @@ def encrypt_fonction(mode):
                         k = key_schedule_tab['k']
                         ke = key_schedule_tab['ke']
                         kw = key_schedule_tab['kw']
-
                     record = src.read( 16 ) # Read a record (block) from source file
-
                     while record :
                         block_int = int.from_bytes(record, byteorder='big', signed=False)
                         encrypted_block_int = encrypt( block_int, kw, ke, k )
@@ -490,24 +489,28 @@ def encrypt_fonction(mode):
                     src.close()
                     dst.close()
 
-
+                    cipher = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\cipher.dat", "rb")
+                    record = cipher.read( 16 )
+                    decrypted = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\decrypted.dat", "wb")  # cipher destination file for writing (w)b
+                    while record :
+                        block_int = int.from_bytes(record, byteorder='big', signed=False)
+                        decrypted_block_int = decrypt( block_int, kw, ke, k )
+                        decrypted_record =  decrypted_block_int.to_bytes(16, byteorder ='big', signed=False)
+                        decrypted.write( decrypted_record )
+                        record = cipher.read( 16 )
+                    cipher.close()
+                    decrypted.close()
         elif ( response_encryption == 2 ): #Cipher Block Chaining
-
+            private_key = generate_keys()['private_key']
             if ( key_lenght == 1 ):
-
                 private_key = key_file.read( 16 )
                 private_key = int.from_bytes(private_key, byteorder='big')
-
             elif ( key_lenght == 2 ):
-
                 private_key = key_file.read( 24 )
                 private_key = int.from_bytes(private_key, byteorder='big')
-
             elif ( key_lenght == 3 ):
-
                 private_key = key_file.read( 32 )
                 private_key = int.from_bytes(private_key, byteorder='big')
-
             try:
                 private_key
             except NameError:
@@ -554,23 +557,18 @@ def encrypt_fonction(mode):
                     src.close()
                     dst.close()
 
+
         elif ( response_encryption == 3 ): #Propagated Cipher Block Chaining
-
+            private_key = generate_keys()['private_key']
             if ( key_lenght == 1 ):
-
                 private_key = key_file.read( 16 )
                 private_key = int.from_bytes(private_key, byteorder='big')
-
             elif ( key_lenght == 2 ):
-
                 private_key = key_file.read( 24 )
                 private_key = int.from_bytes(private_key, byteorder='big')
-
             elif ( key_lenght == 3 ):
-
                 private_key = key_file.read( 32 )
                 private_key = int.from_bytes(private_key, byteorder='big')
-
             try:
                 private_key
             except NameError:
@@ -578,7 +576,6 @@ def encrypt_fonction(mode):
             else:
                 try:
                     # Preparation des sous-clefs
-
                     if ( key_lenght == 1 ): #128 bits
                         key_schedule_tab = key_schedule(private_key,128)
                         k = key_schedule_tab['k']
@@ -619,46 +616,30 @@ def encrypt_fonction(mode):
                     src.close()
                     dst.close()
 
-
 def is_prime(number, method):
 
-    """Regler k le nombre d'iteration de rabin miller"""
+    """ Test de primalité de number avec 3 méthodes possibles, le crible d' Eratostene, le théorème de fermat et le test de pseudo primalité de rabin miller """
 
-    if method == ('Eratostene'): #cf NF04
+    if method == ('Eratostene'):
         return eratostene_2(number)
     elif method == ('Fermat'):
         return fermat(number)
     elif method == ('Rabin-Miller'):
-        return rabinMiller(number,40)
-
-
-def eratostene(number):
-    list = [False,False] + [True]*(number-1)
-    list[2::2] = [False]*(number // 2) # on élimine déjà tous les nombres pairs
-    primeList = [2] # 2 est un nombre premier
-    racine = int(math.sqrt(number))
-    racine = racine + [1,0][racine%2] # pour que racine soit impaire
-    for i in range(3,racine+1,2):
-        if list[i]:
-            primeList.append(i)
-            list[i::i] = [False]*(number // i) # on élimine i et ses multiples
-    return primeList + [i for i in range(racine,number+1,2) if list[i]]
-
+        return rabinMiller(number,40) #40 itérations (recomandation du Handbook of Applied Cryptography)
 
 def eratostene_2(n): # ma version du crible d'eratostene
-    if n == 1:
+    if n == 1: # 1 n'est pas premier
         return False
     d = 2
     while d**2 <= n and n%d!=0:
         d = d+1
     if d**2 > n:
-        return n
+        return True
     else:
-        return d
+        return False
 
-
-def fermat(number):
-    a = random.randint(1,number)
+def fermat(number): #Test de primalité de fermat
+    a = secrets.SystemRandom().randrange(1, number)
     if ( ( a ** (number-1) ) % number == 1 ):
         return True
     else:
@@ -673,11 +654,10 @@ def rabinMiller(n, k): #retourne True si number passe k rounds du test de primal
     s = 0
     r = n - 1
     while r & 1 == 0:
-        s += 1
-        r //= 2
-    # fait k tests...
-    for _ in range(k):
-        a = randrange(2, n - 1)
+        s = s + 1
+        r = r // 2
+    for i in range(k): # fait k tests, ici 40
+        a = secrets.SystemRandom().randrange(2, n - 1)
         x = pow(a, r, n)
         if x != 1 and x != n - 1:
             j = 1
@@ -685,82 +665,64 @@ def rabinMiller(n, k): #retourne True si number passe k rounds du test de primal
                 x = pow(x, 2, n)
                 if x == 1:
                     return False
-                j += 1
+                j = j + 1
             if x != n - 1:
                 return False
     return True
 
-def prime_factors(n):
-    i = 2
-    factors = []
-    while i*i <= n:
-        if n % i:
-            i = i + 1
+def pow(x,e,m): #calcul de l'exponentiation modulaire rapide
+    y = 1
+    while e>0:
+        if e%2 == 0:
+            x = (x*x) % m
+            e = e // 2
         else:
-            n = n//i
-            factors.append(i)
-    if n>1:
-        factors.append(n)
-    return factors
+            y = (x * y) % m
+            e = e-1
+    return y
 
-def trial_division(n,B):
-    a = []
-    while pow(n,1,2) == 0:
-        a.append(2)
-        n //= 2
-    f = 3
-    while f * f <= B * B:
-        if pow(n,1,f) == 0:
-            a.append(f)
-            n //= f
-        else:
-            f += 2
-    if (n != 1):
-        a.append(n)
-    return a
 
-def inverse(a, m):
+
+def inverse(a, m): #calcul de l'inverse
     g = pgcd(a, m)
     if (g != 1):
         print("L'inverse n'existe pas")
     else :
         return pow(a, m - 2, m)
 
-def pgcd(a,b):
+def pgcd(a,b): #calcul du PGCD
     if (a == 0):
         return b
     return pgcd( pow(b,1,a), a)
 
 
-def generate_private_keys_symetric():
-
-    """Voir le TD correspondant"""
-
-    private_key = 0x0123456789abcdeffedcba9876543210
-    return {'private_key': private_key }
-
 
 
 def gen_p_q_DSA(L, N, test_method):
     print('Generation de p,q...')
+
+    """ Methode naive pour generer p et q pour DSA
+    """
+
     q = secrets.randbits(N)
     while not(is_prime(q, test_method)):
         q = secrets.randbits(N)
     i = 2**L
     p = 0
     while not(is_prime(p, test_method)):
-        i += 1
+        i = i + 1
         p = q*i + 1
     return p,q,i
 
 def generate_probable_prime_pair_for_DSA(L ,N , seedlen, test_method):
+
+    """ Implementation officielle du NIST décrite dans la norme FIPS 182-4
+    """
+    print('Generation de p,q...')
     outlen = 256
     V = []
     W = 0
-    """ Implementation officielle du NIST décrite dans la norme FIPS 182-4
-    if ( (L , N) != (1024, 160) and (L , N) != (2048, 224) and (L , N) != (2048, 256) and ( L , N) != (3072, 160)  ):
-        return "invalid ( L,N ) pair"
-    """
+
     if ( seedlen < N ):
         return "invalid seed lenght"
     n = math.ceil(L / outlen) - 1
@@ -790,38 +752,37 @@ def generate_probable_prime_pair_for_DSA(L ,N , seedlen, test_method):
             else:
                 offset = offset + n + 1
 
+def DSA_generate_params(L_lenght, N_lenght, test_method):
+
+    """Génére les paramétres p, q, g de DSA celon la méthode précedente.
+    """
+
+    p_q_pair = generate_probable_prime_pair_for_DSA(L_lenght, N_lenght, 256, test_method)
+    (p, q) = p_q_pair[0],p_q_pair[1]
+    h = secrets.SystemRandom().randrange(2,p-2) # on choisi un h au hasard entre 2 et p-2
+    g = pow( h , (p-1)//q, p) # g = h ^ (p-1)/q [p]
 
 
-def sign_el_gamal(message, private_key, p, g):
-    k = secrets.SystemRandom().randrange(1, p - 2)
-    r = pow(g,k,p)
-    hash = (int(sha1(to_binary(xmpz(message))).hexdigest(), 16))
-    s = pow( inverse(k,p - 1)*hash - private_key*r,1 ,p - 1)
-    while (s==0):
-        k = secrets.SystemRandom().randrange(1, p - 2)
-        r = pow(g,k,p)
-        s = pow(inverse(k,p - 1)*hash - private_key*r,1 ,p - 1)
-    return s,r,hash
+    return {'p': p,'q': q,'g': g }
+
 
 def sign_dsa(message, private_key, p, q, g):
     print('Signature en cours...')
-    k = secrets.SystemRandom().randrange(1, q - 1)
-    r = pow( pow(g,k,p) , 1, q)
-    hash = (int(sha1(to_binary(xmpz(message))).hexdigest(), 16))
-    s = pow(inverse(k,q)*(hash + private_key*r),1 ,q )
-    while (r == 0 or s == 0):
+    k = secrets.SystemRandom().randrange(1, q - 1)  # on choisi un k au hasard entre 1 et q -1
+    r = pow( pow(g,k,p) , 1, q) # on calcule r = (g^k mod p) mod q
+    hash = (int(sha1(to_binary(xmpz(message))).hexdigest(), 16)) # on calcule le hash du message
+    s = pow(inverse(k,q)*(hash + private_key*r),1 ,q ) #  on calcule s = (k^-1 (H(m) + xr) mod q
+    while (r == 0 or s == 0): # dans le cas ou r ou s son nul, on recalcule la signature (r,s)
         k = secrets.SystemRandom().randrange(1,q-1)
         r = pow(pow(g,k,p),1, q)
-        s = pow((inverse(k,q)*hash + private_key*r),1 ,q )
+        s = pow((inverse(k,q)*hash + private_key*r),1 ,q ) #la signature est (r,s)
     return s,r,hash
 
-def sign_dsa_message(message, private_key, p, q, g):
+def sign_dsa_message(message, private_key, p, q, g): # de même que ci dessous, sauf que il faut calculer le hash du message total
     print('Signature en cours...')
     concat = ""
     for i in range(len(message.value)):
         concat = concat + hex(message.value[i])[2:]
-    print(concat)
-    print(concat.encode())
     k = secrets.SystemRandom().randrange(1, q - 1)
     r = pow( pow(g,k,p) , 1, q)
     hash = (int(sha1(concat.encode()).hexdigest(), 16))
@@ -830,136 +791,54 @@ def sign_dsa_message(message, private_key, p, q, g):
         k = secrets.SystemRandom().randrange(1,q-1)
         r = pow(pow(g,k,p),1, q)
         s = pow((inverse(k,q)*hash + private_key*r),1 ,q )
-    return s,r,hash
-
-def H(m):
-    return int(sha1(to_binary(xmpz(message))).hexdigest(), 16)
-
-def validate_sign_el_gamal(s, r, hash, y, p, g):
-    print("validate_sign_el_gamal")
-    a = pow(y,r,p)
-    b = pow(r,s,p)
-
-
-    if ((0 < r < p) and (0 < s < p - 1)):
-        if (pow(g,hash,p) == pow(a*b,1,p)):
-            print("g^H est congru a y^r*r^s")
-            return True
-        else:
-            print("g^H n'est pas congru a y^r*r^s")
-            return False
-    else:
-        print("r ou s out af ranges")
-        return False
-
-
-
+    return s,r,hash #la signature est (r,s)
 
 
 def validate_sign_dsa(s, r, hash, y, p, q, g):
     if ( not(0<r<q) or not( 0<s<q) ):
         return False
-    w = inverse(s,q)
-    u1 = pow(hash*w,1,q)
-    u2 = pow(r*w,1,q)
+    w = inverse(s,q) # on calcule w = s^-1 mod q
+    u1 = pow(hash*w,1,q) # on calcule u1 = hash(message) * w mod q
+    u2 = pow(r*w,1,q) # on calcule u2 = r * w mod q
     b = pow(y,u2,p)
     a = pow(g,u1,p)
-    v = pow( pow(a*b,1,p),1,q)
+    v = pow( pow(a*b,1,p),1,q) # on calcule (g^u1 * y^u2 mod p) mod q
 
     print("v = " + str(hex(v)))
     print("r = " + str(hex(r)))
 
-    return v == r
+    return v == r # si v == r (True) la signature est valide
 
 def generate_safe_prime(bit_lenght, test_method):
 
     """
-    Génére un nombre premier cryptographiquement sécurisé (dit de Sophie-Germain) p tel que 2*p + 1 est également premier. Cette methode est détaillé dans la rfc du protocole d'échange de clef de deffie Helman adapoté par SSH
+    Génére un nombre premier cryptographiquement sécurisé p tel que 2*p + 1 est également premier. Cette methode est détaillé dans la rfc du protocole d'échange de clef de deffie Helman adapoté par SSH et dans le HandBook Of Aplied Cryptography
     """
 
     print("generate safe prime")
     q = generate_prime_number(bit_lenght-1, test_method)
-    #while  (pow(q,1,12) != 5):
-        #print("genreate safe prime while")
-        #q = generate_prime_number(bit_lenght-1, test_method)
-    print("Calculate p")
+    print("Calculate")
     p = 2*q + 1
-    #while (pow(q,1,3) != 0 and pow(q,1,3) != 1 and pow((q-1)//2,1,3) != 0 and pow((q-1)//2,1,3) != 1 and pow((2*q +1),1,3) != 0 and pow((2*q+1),1,3) != 1):
-    while (not(is_prime( ((q-1)//2), test_method))):
-        while (not(is_prime( (p), test_method))):
-            q = generate_prime_number(bit_lenght-1, test_method)
-            print("Calculate p")
-            p = 2*q + 1
-    return q
+    while (not(is_prime( ((q-1)//2), test_method)) and not(is_prime( (p), test_method))): # on test la primalité avec p = 2*q+1 et (q-1)//2
+        q = generate_prime_number(bit_lenght-1, test_method)
+        print('.', end='')
+        p = 2*q + 1
+    print("P :")
+    print(p)
+    return p
 
-def test_if_generator_naive(alpha,p):
-    prime_factor_list = []
-    prime_factor_list = prime_factors(p)
-    for i in range(0,len()):
-        if (alpha**(p-1/prime_factor_list[i]) == 1):
-            return False
-    return True
+
 
 def generate_generator(p):
     print("Generate Generator")
-    # D'après la RFC de SSH, pour l'échange de clef de deffie Helman, il est recomandé d'uitilser 2 ou 5 comme génerateur ce qui est possible car p est cryptographiquement sécurisé.
-    if (pow(p,1,24) == 11):
-        return 2
-    elif (pow(p,1,10) == 3 or pow(p,1,10) == 7):
-        return 5
-    else:
-        return 2
-
-
-
-def El_Gamal_generate_params(N_lenght, test_method):
-    p = generate_safe_prime(N_lenght, 'Rabin-Miller')
-    # on trouve un generateur g<p tel que g appartient a Z*p
-    # pour cela on pourrais décomposer p-1 en produits de facteurs premiers
-    # et g est générateur ssi l'enseble g**(p-1/facteur_indice_i) est différent de 1
-    # Or ici p est grand on utilise un nombre de sophie germain en s'inpirant de ce qui a été fait pour SSH
-    g = generate_generator_El_Gamal(p)
-    return {'p': p,'g': g }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def DSA_generate_params(L_lenght, N_lenght, test_method):
-
-    """Calcul de p, q, g par persone pour DSA, recomandation avec L=2048 et N = 256
-        test_method = 'Rabin-Miller' , 'Fermat', 'Eratosthene'
     """
-
-    """ methode naive
-
-    q = generate_prime_number(N_lenght,test_method) # on trouve un q premier de n bits
-    print('Flag 1')
-    p = generate_prime_number(L_lenght,test_method) # on trouve un p premier de L bits
-    print('Flag 2')
-    while ( pow(p-1, 1, q) != 0 ): #tel que p-1 est un multiple de q
-        print('Flag 3')
-        p = generate_prime_number(L_lenght, test_method)
+    D'après la RFC de SSH, pour l'échange de clef de deffie Helman, il est recomandé d'uitilser 2 ou 5 comme génerateur ce qui est possible car p est cryptographiquement sécurisé. ON se contente ici de la définition : un element alpha est générateur ssi alpha^p mod p est different de 1 et alpha^2 mod p different de 2
     """
-
-    #p_q_pair = generate_probable_prime_pair_for_DSA(L_lenght, N_lenght, 256, test_method)
-    #p_q_pair = generate_probable_prime_pair_for_DSA(L_lenght,N_lenght, 256, 'Rabin-Miller')
-    p_q_pair = gen_p_q_DSA(L_lenght,N_lenght, 'Rabin-Miller')
-    (p, q, i) = p_q_pair[0],p_q_pair[1],p_q_pair[2]
-    h = secrets.SystemRandom().randrange(2,p-2) #tel que p-1 est un est un multiple de q
-    g = pow( h , i, p) # g = h **(p-1) / q [p]
-
-
-    return {'p': p,'q': q,'g': g }
+    for g in range (1,p-1):
+        if ( pow(g,(p-1)//2,p) != 1 and pow(g,2,p) !=1 ):
+            print("Generator = " + str(g))
+            return g
+    return 'no generator'
 
 
 
@@ -970,7 +849,7 @@ def generate_random_number_for_primality_test(bit_length):
     Génere un entier d'une suite de bits, typiquement dans notre implementation
     entre 512 bits (bit de poid fort) et 512 + (1 + 2 + 4 + 8 +....) = 1023 bits
 
-    on applique un masque pour ne garder que les impaires
+    on applique un masque pour ne garder que les impaires (tout les premiers étant impaires)
 
     """
 
@@ -1039,9 +918,7 @@ def rotate_left(val, r_bits, max_bits):
 
 
 def key_schedule(K, key_length):
-    # print(" K = " )
-    # print( K.bit_length() )
-    # print(bin(K).zfill(128))
+
 
     if ( key_length ) == 128:
 
@@ -1346,7 +1223,7 @@ class Sender:
 
 
     def __str__(self):
-        return 'Sender : ' +  '\n' +'private_key = ' + str(self.private_key)  +  '\n' + 'public_key_certificator = ' + str(self.public_key_certificator)  +  '\n' + ' K =' + str(self.K)
+        return 'Sender : ' +  '\n' +'private_key = ' + str(self.private_key)  +  '\n' + 'public_key_certificator = ' + str(self.public_key_certificator)  +  '\n' + ' Secret Key =' + str(hex(self.K))
 
 
 class Receiver:
@@ -1356,6 +1233,7 @@ class Receiver:
         self.private_key = private_key
         self.certificate = certificate
         self.b = 0
+        self.K = 0
 
 
     def decrypt(Message, key_lenght):
@@ -1371,6 +1249,8 @@ class Receiver:
         self.b = secrets.SystemRandom().randrange(2,(Sender.p)-2)
         Sender.K = pow(self.B,Sender.a,Sender.p)
 
+    def set_private_key(self, A, p):
+        self.K = pow(A,self.b,p)
 
 
     @staticmethod
@@ -1390,7 +1270,7 @@ class Receiver:
         else:
             hex_certif = hex(self.certificate)
 
-        return  'Receiver :'+  '\n' +'private_key = ' +  str(hex(self.private_key)) +  '\n' + 'public_key = ' + str(hex(self.public_key)) +  '\n' + 'certificate = ' + str(hex_certif) +  '\n'
+        return  'Receiver :'+  '\n' +'private_key = ' +  str(hex(self.private_key)) +  '\n' + 'public_key = ' + str(hex(self.public_key)) +  '\n' + 'certificate = ' + str(hex_certif) +  '\n' + 'Secret Key = ' + str(hex(self.K))
 
 class Certificator:
 
@@ -1451,6 +1331,10 @@ def main(): #programme principal
         system.p = params_tab['p']
         system.q = params_tab['q']
         system.g = params_tab['g']
+        print("P :")
+        print(system.p)
+        print("Q :")
+        print(system.q)
         key_tab = generate_public_private_keys_asymetric_dsa(system.p, system.q, system.g)
         certificator.public_key = key_tab['public_key']
         certificator.private_key = key_tab['private_key']
@@ -1461,20 +1345,58 @@ def main(): #programme principal
         sender.private_key =  key_tab_sender['private_key']
         sender.public_key = key_tab_sender['public_key']
 
-        """
-        params_tab = El_Gamal_generate_params(512, 'Rabin-Miller')
-        system.p = params_tab['p']
-        system.g = params_tab['g']
-        key_tab = generate_public_private_keys_asymetric_el_gamal(system.p, system.g)
-        public_key, private_key = generate_public_private_keys_asymetric_el_gamal(system.p, system.g)
-        certificator.public_key = key_tab['public_key']
-        certificator.private_key = key_tab['private_key']
-        key_tab_sender = generate_public_private_keys_asymetric_el_gamal(system.p,system.g)
-        receiver.private_key =  key_tab_sender['private_key']
-        receiver.public_key = key_tab_sender['public_key']
-        print(str(receiver))
-        print(str(certificator))
-        """
+
+        # Écriture des clef dans des fichiers
+
+        certificator_public_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Certificator\public_key.dat", "wb")  # destination file for writing (w)b
+        certificator_public_key_record =  certificator.public_key.to_bytes(128, byteorder ='big', signed=False)
+        certificator_public_key_file.write(certificator_public_key_record)
+        for _ in range(128):
+             tag_record = secrets.randbits(128).to_bytes(16, byteorder ='big', signed=False)
+             certificator_public_key_file.write(tag_record)
+        certificator_public_key_file.close()
+
+        certificator_private_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Certificator\private_key.dat", "wb")  # destination file for writing (w)b
+        certificator_private_key_record =  certificator.private_key.to_bytes(20, byteorder ='big', signed=False)
+        certificator_private_key_file.write(certificator_private_key_record)
+        for _ in range(128):
+             tag_record = secrets.randbits(128).to_bytes(16, byteorder ='big', signed=False)
+             certificator_private_key_file.write(tag_record)
+        certificator_private_key_file.close()
+
+        sender_public_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Sender\public_key.dat", "wb")  # destination file for writing (w)b
+        sender_public_key_record = sender.public_key.to_bytes(128, byteorder ='big', signed=False)
+        sender_public_key_file.write(sender_public_key_record)
+        for _ in range(128):
+             tag_record = secrets.randbits(128).to_bytes(16, byteorder ='big', signed=False)
+             sender_public_key_file.write(tag_record)
+        sender_public_key_file.close()
+
+        sender_private_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Sender\private_key.dat", "wb")  # destination file for writing (w)b
+        sender_private_key_record = sender.private_key.to_bytes(20, byteorder ='big', signed=False)
+        sender_private_key_file.write(sender_private_key_record)
+        for _ in range(128):
+             tag_record = secrets.randbits(128).to_bytes(16, byteorder ='big', signed=False)
+             sender_private_key_file.write(tag_record)
+        sender_private_key_file.close()
+
+        receiver_public_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Receiver\public_key.dat", "wb")  # destination file for writing (w)b
+        receiver_public_key_record = receiver.public_key.to_bytes(128, byteorder ='big', signed=False)
+        receiver_public_key_file.write(receiver_public_key_record)
+        for _ in range(128):
+             tag_record = secrets.randbits(128).to_bytes(16, byteorder ='big', signed=False)
+             receiver_public_key_file.write(tag_record)
+        receiver_public_key_file.close()
+
+        receiver_private_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Receiver\private_key.dat", "wb")  # destination file for writing (w)b
+        receiver_private_key_record = receiver.private_key.to_bytes(20, byteorder ='big', signed=False)
+        for _ in range(128):
+             tag_record = secrets.randbits(128).to_bytes(16, byteorder ='big', signed=False)
+             receiver_private_key_file.write(tag_record)
+        receiver_private_key_file.write(receiver_private_key_record)
+        receiver_private_key_file.close()
+
+
         print("")
         print(str(receiver))
         print("")
@@ -1484,15 +1406,22 @@ def main(): #programme principal
         print("")
         print(str(message))
         print("")
-
-
         main()
     elif ( response == 2 ): # géneration d'un certificat
-        """
-
-
-        """
         receiver.certificate = certificator.sign_with_private_key(receiver.public_key,system)
+        print(receiver.certificate)
+        receiver_certificate_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Certificator\certificate.pem", "wb")  # destination file for writing (w)b
+        certificator_record_s1 = receiver.certificate[0].to_bytes(128, byteorder ='big', signed=False)
+        certificator_record_s2 = receiver.certificate[1].to_bytes(128, byteorder ='big', signed=False)
+        certificator_record_hash = receiver.certificate[2].to_bytes(128, byteorder ='big', signed=False)
+        receiver_certificate_file.write(certificator_record_s1)
+        receiver_certificate_file.write(certificator_record_s2)
+        receiver_certificate_file.write(certificator_record_hash)
+        for _ in range(128):
+             tag_record = secrets.randbits(128).to_bytes(16, byteorder ='big', signed=False)
+             receiver_certificate_file.write(tag_record)
+        receiver_certificate_file.close()
+
         print("")
         print(str(receiver))
         print("")
@@ -1501,7 +1430,6 @@ def main(): #programme principal
         print(str(certificator))
         print("")
         print(str(message))
-
         main()
     elif ( response == 3 ): # verifier la validité d'un certificat
         print("Verification...")
@@ -1518,17 +1446,22 @@ def main(): #programme principal
         main()
     elif ( response == 4 ): # partager la clé secrete
         print("Generation et partage de la clé...")
-        #sender.p = generate_safe_prime(1024, 'Rabin-Miller')
-        sender.p = 179769313486231590772930519078902473361797697894230657273430081157732675805500963132708477322407536021120113879871393357658789768814416622492847430639474124377767893424865485276302219601246094119453082952085005768838150682342462881473913110540827237163350510684586298239947245938479716304835356329624225795083
-        sender.g = generate_generator(sender.p)
-        sender.a = secrets.SystemRandom().randrange(2,sender.p-2) #tel que p-1 est un est un multiple de q
-        sender.A = pow(sender.g , sender.a, sender.p)
-        sender.send_difie_hellman_params(receiver)
-        receiver.send_B_and_set_private_key(sender)
+        sender.p = generate_safe_prime(512, 'Rabin-Miller') # on génére un premier cryptographiquement sécurisé de 512 bits
+        sender.g = generate_generator(sender.p) # on génére un élement générateur à partir de ce premier
+        sender.a = secrets.SystemRandom().randrange(2,sender.p-2) # Sender choisi un a au hasard entre 2 et p -2
+        receiver.b = secrets.SystemRandom().randrange(2,sender.p-2) # Receiver choisi un b au hasard entre 2 et p -2
+        sender.A = pow(sender.g , sender.a, sender.p) # Sender calcule A = g^a [p]
+        sender.send_difie_hellman_params(receiver) # Sender envoie g, P, A au receiver
+        receiver.set_private_key(sender.A, sender.p) # Receiver peut donc calculer B = g^b [p] et definir sa clé secrète à K = A^b [p]
+        receiver.send_B_and_set_private_key(sender) # Receiver envoie B a Sender qui a son tour peut calculer sa clef secrète K = B^a [p]
+
+        print("")
+        print(str(sender))
+
         print("")
         print(str(receiver))
         print("")
-        print(str(sender))
+
         main()
     elif ( response == 5 ): # chiffrer un message
         read_mode = prompt.integer(prompt="Voulez vous le mode Texte (1) ou Fichier Binaire (2) ? : ")
@@ -1563,8 +1496,116 @@ def main(): #programme principal
     elif ( response == 7 ):  # verifier la signature du message
         receiver.verify_signature(message, sender)
         main()
-    elif ( response == 8 ):
-        print ("8")
+    elif ( response == 8 ): # Toutes les étapes du programme
+        params_tab = DSA_generate_params(1024, 160, 'Rabin-Miller')
+        system.p = params_tab['p']
+        system.q = params_tab['q']
+        system.g = params_tab['g']
+        print("P :")
+        print(system.p)
+        print("Q :")
+        print(system.q)
+        key_tab = generate_public_private_keys_asymetric_dsa(system.p, system.q, system.g)
+        certificator.public_key = key_tab['public_key']
+        certificator.private_key = key_tab['private_key']
+        key_tab_receiver = generate_public_private_keys_asymetric_dsa(system.p,system.q,system.g)
+        receiver.private_key =  key_tab_receiver['private_key']
+        receiver.public_key = key_tab_receiver['public_key']
+        key_tab_sender = generate_public_private_keys_asymetric_dsa(system.p,system.q,system.g)
+        sender.private_key =  key_tab_sender['private_key']
+        sender.public_key = key_tab_sender['public_key']
+
+
+        # Écriture des clef dans des fichiers
+
+        certificator_public_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Certificator\public_key.dat", "wb")  # destination file for writing (w)b
+        certificator_public_key_record =  certificator.public_key.to_bytes(128, byteorder ='big', signed=False)
+        certificator_public_key_file.write(certificator_public_key_record)
+        for _ in range(128):
+             tag_record = secrets.randbits(128).to_bytes(16, byteorder ='big', signed=False)
+             certificator_public_key_file.write(tag_record)
+        certificator_public_key_file.close()
+
+        certificator_private_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Certificator\private_key.dat", "wb")  # destination file for writing (w)b
+        certificator_private_key_record =  certificator.private_key.to_bytes(20, byteorder ='big', signed=False)
+        certificator_private_key_file.write(certificator_private_key_record)
+        for _ in range(128):
+             tag_record = secrets.randbits(128).to_bytes(16, byteorder ='big', signed=False)
+             certificator_private_key_file.write(tag_record)
+        certificator_private_key_file.close()
+
+        sender_public_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Sender\public_key.dat", "wb")  # destination file for writing (w)b
+        sender_public_key_record = sender.public_key.to_bytes(128, byteorder ='big', signed=False)
+        sender_public_key_file.write(sender_public_key_record)
+        for _ in range(128):
+             tag_record = secrets.randbits(128).to_bytes(16, byteorder ='big', signed=False)
+             sender_public_key_file.write(tag_record)
+        sender_public_key_file.close()
+
+        sender_private_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Sender\private_key.dat", "wb")  # destination file for writing (w)b
+        sender_private_key_record = sender.private_key.to_bytes(20, byteorder ='big', signed=False)
+        sender_private_key_file.write(sender_private_key_record)
+        for _ in range(128):
+             tag_record = secrets.randbits(128).to_bytes(16, byteorder ='big', signed=False)
+             sender_private_key_file.write(tag_record)
+        sender_private_key_file.close()
+
+        receiver_public_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Receiver\public_key.dat", "wb")  # destination file for writing (w)b
+        receiver_public_key_record = receiver.public_key.to_bytes(128, byteorder ='big', signed=False)
+        receiver_public_key_file.write(receiver_public_key_record)
+        for _ in range(128):
+             tag_record = secrets.randbits(128).to_bytes(16, byteorder ='big', signed=False)
+             receiver_public_key_file.write(tag_record)
+        receiver_public_key_file.close()
+
+        receiver_private_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Receiver\private_key.dat", "wb")  # destination file for writing (w)b
+        receiver_private_key_record = receiver.private_key.to_bytes(20, byteorder ='big', signed=False)
+        for _ in range(128):
+             tag_record = secrets.randbits(128).to_bytes(16, byteorder ='big', signed=False)
+             receiver_private_key_file.write(tag_record)
+        receiver_private_key_file.write(receiver_private_key_record)
+        receiver_private_key_file.close()
+
+
+
+        receiver.certificate = certificator.sign_with_private_key(receiver.public_key,system)
+        print(receiver.certificate)
+        receiver_certificate_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Certificator\certificate.pem", "wb")  # destination file for writing (w)b
+        certificator_record_s1 = receiver.certificate[0].to_bytes(128, byteorder ='big', signed=False)
+        certificator_record_s2 = receiver.certificate[1].to_bytes(128, byteorder ='big', signed=False)
+        certificator_record_hash = receiver.certificate[2].to_bytes(128, byteorder ='big', signed=False)
+        receiver_certificate_file.write(certificator_record_s1)
+        receiver_certificate_file.write(certificator_record_s2)
+        receiver_certificate_file.write(certificator_record_hash)
+        for _ in range(128):
+             tag_record = secrets.randbits(128).to_bytes(16, byteorder ='big', signed=False)
+             receiver_certificate_file.write(tag_record)
+        receiver_certificate_file.close()
+
+        print("Verification...")
+        sender.verify_certificate(system, receiver, certificator.public_key)
+
+        print("Generation et partage de la clé...")
+        sender.p = generate_safe_prime(512, 'Rabin-Miller') # on génére un premier cryptographiquement sécurisé de 512 bits
+        sender.g = generate_generator(sender.p) # on génére un élement générateur à partir de ce premier
+        sender.a = secrets.SystemRandom().randrange(2,sender.p-2) # Sender choisi un a au hasard entre 2 et p -2
+        receiver.b = secrets.SystemRandom().randrange(2,sender.p-2) # Receiver choisi un b au hasard entre 2 et p -2
+        sender.A = pow(sender.g , sender.a, sender.p) # Sender calcule A = g^a [p]
+        sender.send_difie_hellman_params(receiver) # Sender envoie g, P, A au receiver
+        receiver.set_private_key(sender.A, sender.p) # Receiver peut donc calculer B = g^b [p] et definir sa clé secrète à K = A^b [p]
+        receiver.send_B_and_set_private_key(sender) # Receiver envoie B a Sender qui a son tour peut calculer sa clef secrète K = B^a [p]
+
+        read_mode = prompt.integer(prompt="Voulez vous le mode Texte (1) ou Fichier Binaire (2) ? : ")
+        if ( read_mode == 1 ):
+            encrypt_fonction("text")
+        elif ( read_mode == 2 ):
+            encrypt_fonction("binary")
+
+        sender.sign(message,system)
+        receiver.verify_signature(message, sender)
+
+
+
         main()
     elif ( response == 9 ):
         print ("Fin")

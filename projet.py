@@ -33,18 +33,13 @@ Sigma6 = 0xB05688C2B3E6C1FD
 def SBOX2(x):
         return(rotate_left(SBOX1(x),1,8))
 
-
 def SBOX3(x):
         return rotate_left(SBOX1(x),7,8)
-
 
 def SBOX4(x):
         return SBOX1(rotate_left(x,1,8))
 
-
 def SBOX1(x):
-    #print (hex(x))
-    #print("0x{:02x}".format(x))
     line = "0x{:02x}".format(x)[2]
     column = "0x{:02x}".format(x)[3]
     dict =     {'0' : {     '0': 112,   '1' : 130,  '2' : 44,   '3' : 236,  '4' : 179,  '5' : 39,   '6' : 192,  '7':229,    '8':228,    '9':133,   'a':87,     'b':53,     'c':234,    'd': 12,    'e':174,    'f':65},
@@ -65,34 +60,14 @@ def SBOX1(x):
                 'f' : {     '0': 64,    '1' : 40,   '2' : 211,  '3' : 123,  '4' :187,   '5' : 201,  '6' : 67,   '7':193,    '8':21,     '9':227,   'a':173,    'b':244,    'c':119,    'd': 199,    'e':128,    'f':158},
                 }
     column = str(column)
-    #print(line)
-    #print(column)
-
     return dict[line][column]
 
 
-#01 112 130  44 236 179  39 192 229 228 133  87  53 234  12 174  65
-#10:  35 239 107 147  69  25 165  33 237  14  79  78  29 101 146 189
-#20: 134 184 175 143 124 235  31 206  62  48 220  95  94 197  11  26
-#30: 166 225  57 202 213  71  93  61 217   1  90 214  81  86 108  77
-#40: 139  13 154 102 251 204 176  45 116  18  43  32 240 177 132 153
-#50: 223  76 203 194  52 126 118   5 109 183 169  49 209  23   4 215
-#60:  20  88  58  97 222  27  17  28  50  15 156  22  83  24 242  34
-#70: 254  68 207 178 195 181 122 145  36   8 232 168  96 252 105  80
-#80: 170 208 160 125 161 137  98 151  84  91  30 149 224 255 100 210
-#90:  16 196   0  72 163 247 117 219 138   3 230 218   9  63 221 148
-#a0: 135  92 131   2 205  74 144  51 115 103 246 243 157 127 191 226
-#b0:  82 155 216  38 200  55 198  59 129 150 111  75  19 190  99  46
-#c0: 233 121 167 140 159 110 188 142  41 245 249 182  47 253 180  89
-#d0: 120 152   6 106 231  70 113 186 212  37 171  66 136 162 141 250
-#e0: 114   7 185  85 248 238 172  10  54  73  42 104  60  56 241 164
-#f0:  64  40 211 123 187 201  67 193  21 227 173 244 119 199 128 158
-
 def generate_keys():
     if (sender.K == 0):
-        private_key = 0x0123456789abcdeffedcba9876543210 # Si on n'a pas de clef secrete de définie, on utilise le vecteur par défaut décrit dans la RFC de Camelia
+        private_key = 0x0123456789abcdeffedcba987654321000112233445566778899aabbccddeeff # Si on n'a pas de clef secrete de définie, on utilise le vecteur par défaut décrit dans la RFC de Camelia
         key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\key.dat", "wb") # source file for the key
-        key_file_record =  private_key.to_bytes(16, byteorder ='big', signed=False)
+        key_file_record =  private_key.to_bytes(32, byteorder ='big', signed=False)
         key_file.write(key_file_record)
         key_file.close
     else:
@@ -217,13 +192,13 @@ def encrypt_fonction(mode):
                     ke = key_schedule_tab['ke']
                     kw = key_schedule_tab['kw']
                 elif ( key_lenght == 2 ): #192 bits
-                    private_key = int((str(hex(private_key))[:49],16))
+                    private_key = int(str(hex(private_key))[:49],16)
                     key_schedule_tab = key_schedule(private_key,192)
                     k = key_schedule_tab['k']
                     ke = key_schedule_tab['ke']
                     kw = key_schedule_tab['kw']
                 elif ( key_lenght == 3 ):  #256 bits
-                    private_key = int((str(hex(private_key))[:65],16))
+                    private_key = int(str(hex(private_key))[:65],16)
                     key_schedule_tab = key_schedule(private_key,256)
                     k = key_schedule_tab['k']
                     ke = key_schedule_tab['ke']
@@ -682,7 +657,6 @@ def pow(x,e,m): #calcul de l'exponentiation modulaire rapide
     return y
 
 
-
 def inverse(a, m): #calcul de l'inverse
     g = pgcd(a, m)
     if (g != 1):
@@ -694,8 +668,6 @@ def pgcd(a,b): #calcul du PGCD
     if (a == 0):
         return b
     return pgcd( pow(b,1,a), a)
-
-
 
 
 def gen_p_q_DSA(L, N, test_method):
@@ -733,7 +705,7 @@ def generate_probable_prime_pair_for_DSA(L ,N , seedlen, test_method):
         q = 2**(N-1) + U + 1 - ( pow(U,1,2) )
         while ( not(is_prime(q, test_method) ) ):
             domain_name_seed = secrets.randbits( seedlen )
-            U = pow( int(hashlib.sha256( (domain_name_seed ).to_bytes(seedlen, byteorder='big') ).hexdigest(), 16), 1 , 2**(N-1) )
+            U = pow( int( hashlib.sha256( (domain_name_seed ).to_bytes(seedlen, byteorder='big') ).hexdigest(), 16), 1 , 2**(N-1) )
             q = 2**( N-1 ) + U + 1 - ( pow(U,1,2) )
         offset = 1
         for counter in range( 4*L ):
@@ -835,7 +807,7 @@ def generate_generator(p):
     D'après la RFC de SSH, pour l'échange de clef de deffie Helman, il est recomandé d'uitilser 2 ou 5 comme génerateur ce qui est possible car p est cryptographiquement sécurisé. ON se contente ici de la définition : un element alpha est générateur ssi alpha^p mod p est different de 1 et alpha^2 mod p different de 2
     """
     for g in range (1,p-1):
-        if ( pow(g,(p-1)//2,p) != 1 and pow(g,2,p) !=1 ):
+        if ( pow(g,(p-1)//2,p) != 1 and pow(g,2,p) != 1 ):
             print("Generator = " + str(g))
             return g
     return 'no generator'
@@ -1154,6 +1126,7 @@ def decrypt(C, kw, ke, k):
         k2[12-1], k2[13-1] = k2[13-1], k2[12-1]
         ke2[1-1], ke2[6-1] = ke2[6-1], ke2[1-1]
         ke2[2-1], ke2[5-1] = ke2[5-1], ke2[2-1]
+        ke2[3-1], ke2[4-1] = ke2[4-1], ke2[3-1]
     return encrypt(C, kw2, ke2, k2 )
 
 
@@ -1223,7 +1196,7 @@ class Sender:
 
 
     def __str__(self):
-        return 'Sender : ' +  '\n' +'private_key = ' + str(self.private_key)  +  '\n' + 'public_key_certificator = ' + str(self.public_key_certificator)  +  '\n' + ' Secret Key =' + str(hex(self.K))
+        return 'Sender : ' +  '\n' +'private_key = ' + str(hex(self.private_key))  +  '\n' + 'public_key_certificator = ' + str(hex(self.public_key_certificator))  +  '\n' + ' Secret Key =' + str(hex(self.K))
 
 
 class Receiver:

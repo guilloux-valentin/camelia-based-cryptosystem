@@ -18,6 +18,8 @@ from hashlib import sha1
 
 from random import randrange
 
+CURRENT_PATH = os.getcwd()
+
 MASK8   = 0xff
 MASK32  = 0xffffffff
 MASK64  = 0xffffffffffffffff
@@ -66,13 +68,13 @@ def SBOX1(x):
 def generate_keys():
     if (sender.K == 0):
         private_key = 0x0123456789abcdeffedcba987654321000112233445566778899aabbccddeeff # Si on n'a pas de clef secrete de définie, on utilise le vecteur par défaut décrit dans la RFC de Camelia
-        key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\key.dat", "wb") # source file for the key
+        key_file = open(r"" + CURRENT_PATH + "\key.dat", "wb") # source file for the key
         key_file_record =  private_key.to_bytes(32, byteorder ='big', signed=False)
         key_file.write(key_file_record)
         key_file.close
     else:
         private_key = sender.K
-        key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\key.dat", "wb") # source file for the key
+        key_file = open(r"" + CURRENT_PATH + "\key.dat", "wb") # source file for the key
         key_file_record =  private_key.to_bytes(64, byteorder ='big', signed=False)
         key_file.write(key_file_record)
         key_file.close
@@ -400,9 +402,9 @@ def encrypt_fonction(mode):
                      print( hex(decrypted_text_int_list[i]) )
                 print()
     elif ( mode == "binary" ):
-        key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\key.dat", "rb") # source file for the key
-        src = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\message.dat", "rb") # source file for reading (r)b
-        dst = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\cipher.dat", "wb")  # cipher destination file for writing (w)b
+        key_file = open(r"" + CURRENT_PATH + "\key.dat", "rb") # source file for the key
+        src = open(r"" + CURRENT_PATH + "\message.dat", "rb") # source file for reading (r)b
+        dst = open(r"" + CURRENT_PATH + "\cipher.dat", "wb")  # cipher destination file for writing (w)b
 
         print()
         print ("->1<- 128 bits")
@@ -464,9 +466,9 @@ def encrypt_fonction(mode):
                     src.close()
                     dst.close()
 
-                    cipher = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\cipher.dat", "rb")
+                    cipher = open(r"" + CURRENT_PATH + "\cipher.dat", "rb")
                     record = cipher.read( 16 )
-                    decrypted = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\decrypted.dat", "wb")  # cipher destination file for writing (w)b
+                    decrypted = open(r"" + CURRENT_PATH + "\decrypted.dat", "wb")  # cipher destination file for writing (w)b
                     while record :
                         block_int = int.from_bytes(record, byteorder='big', signed=False)
                         decrypted_block_int = decrypt( block_int, kw, ke, k )
@@ -701,16 +703,34 @@ def generate_probable_prime_pair_for_DSA(L ,N , seedlen, test_method):
     b = L - 1 - ( n * outlen )
     while(1): #extrement dangereux
         domain_name_seed = secrets.randbits( seedlen )
-        U = pow( int(hashlib.sha256( (domain_name_seed ).to_bytes(seedlen, byteorder='big') ).hexdigest(), 16), 1, 2**(N-1) )
+
+        data_to_hash =  (domain_name_seed ).to_bytes(seedlen, byteorder='big')
+        data_lenght = len(bin(int(data_to_hash.hex(), 16))) - 2
+        my_hash = keccak.Keccak((data_lenght,data_to_hash.hex()),288,512,256,False).lower()
+        #my_hash = hashlib.sha256(data_to_hash).hexdigest()
+        
+        U = pow(int(my_hash, 16), 1, 2**(N-1) )
         q = 2**(N-1) + U + 1 - ( pow(U,1,2) )
+
         while ( not(is_prime(q, test_method) ) ):
             domain_name_seed = secrets.randbits( seedlen )
-            U = pow( int( hashlib.sha256( (domain_name_seed ).to_bytes(seedlen, byteorder='big') ).hexdigest(), 16), 1 , 2**(N-1) )
+
+            data_to_hash = (domain_name_seed ).to_bytes(seedlen, byteorder='big') 
+            data_lenght = len(bin(int(data_to_hash.hex(), 16))) - 2
+            #my_hash = keccak.Keccak((data_lenght,data_to_hash.hex()),288,512,256,False).lower()
+            my_hash = hashlib.sha256(data_to_hash).hexdigest()
+            
+            U = pow(int(my_hash, 16), 1 , 2**(N-1) )
             q = 2**( N-1 ) + U + 1 - ( pow(U,1,2) )
         offset = 1
         for counter in range( 4*L ):
             for j in range( n + 1 ):
-                V.append(pow(int(hashlib.sha256( (domain_name_seed + offset + j).to_bytes(seedlen, byteorder='big') ).hexdigest(), 16), 1, 2**seedlen))
+                data_to_hash = (domain_name_seed + offset + j).to_bytes(seedlen, byteorder='big') 
+                data_lenght = len(bin(int(data_to_hash.hex(), 16))) - 2
+                my_hash = keccak.Keccak((data_lenght,data_to_hash.hex()),288,512,256,False).lower()
+                #my_hash = hashlib.sha256(data_to_hash).hexdigest()
+
+                V.append(pow(int(my_hash, 16), 1, 2**seedlen))
             for i in range( n ):
                 W = W + V[i]*(2**(i*outlen))
             W = W + pow( V[n],1,2**b )
@@ -742,7 +762,13 @@ def sign_dsa(message, private_key, p, q, g):
     print('Signature en cours...')
     k = secrets.SystemRandom().randrange(1, q - 1)  # on choisi un k au hasard entre 1 et q -1
     r = pow( pow(g,k,p) , 1, q) # on calcule r = (g^k mod p) mod q
-    hash = (int(sha1(to_binary(xmpz(message))).hexdigest(), 16)) # on calcule le hash du message
+
+    data_to_hash = to_binary(xmpz(message))
+    data_lenght = len(bin(int(data_to_hash.hex(), 16))) - 2
+    my_hash = keccak.Keccak((data_lenght,data_to_hash.hex()),288,512,256,False).lower()
+    #my_hash = sha1(to_binary(xmpz(message))).hexdigest()
+    hash = (int(my_hash, 16)) # on calcule le hash du message
+
     s = pow(inverse(k,q)*(hash + private_key*r),1 ,q ) #  on calcule s = (k^-1 (H(m) + xr) mod q
     while (r == 0 or s == 0): # dans le cas ou r ou s son nul, on recalcule la signature (r,s)
         k = secrets.SystemRandom().randrange(1,q-1)
@@ -757,7 +783,13 @@ def sign_dsa_message(message, private_key, p, q, g): # de même que ci dessous, 
         concat = concat + hex(message.value[i])[2:]
     k = secrets.SystemRandom().randrange(1, q - 1)
     r = pow( pow(g,k,p) , 1, q)
-    hash = (int(sha1(concat.encode()).hexdigest(), 16))
+    
+    data_to_hash = concat.encode()
+    data_lenght = len(bin(int(data_to_hash.hex(), 16))) - 2
+    my_hash = keccak.Keccak((data_lenght,data_to_hash.hex()),288,512,256,False).lower()
+    #my_hash = sha1(concat.encode()).hexdigest()
+    hash = (int(my_hash, 16))
+    
     s = pow(inverse(k,q)*(hash + private_key*r),1 ,q )
     while (r == 0 or s == 0):
         k = secrets.SystemRandom().randrange(1,q-1)
@@ -1268,6 +1300,338 @@ class System:
         self.g = g
 
 
+##########################################################################################
+## SPONGE FUNCTION
+##########################################################################################
+
+class KeccakError(Exception):
+    """Class of error used in the Keccak implementation
+    Use: raise KeccakError.KeccakError("Text to be displayed")"""
+
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
+
+class Keccak:
+    """
+    Class implementing the Keccak sponge function
+    """
+    def __init__(self, b=1600):
+        """Constructor:
+        b: parameter b, must be 25, 50, 100, 200, 400, 800 or 1600 (default value)"""
+        self.setB(b)
+
+    def setB(self,b):
+        """Set the value of the parameter b (and thus w,l and nr)
+        b: parameter b, must be choosen among [25, 50, 100, 200, 400, 800, 1600]
+        """
+
+        if b not in [25, 50, 100, 200, 400, 800, 1600]:
+            raise KeccakError.KeccakError("b value not supported - use 25, 50, 100, 200, 400, 800 or 1600")
+
+        # Update all the parameters based on the used value of b
+        self.b=b
+        self.w=b//25
+        self.l=int(math.log(self.w,2))
+        self.nr=12+2*self.l
+
+    # Constants
+
+    ## Round constants
+    RC=[0x0000000000000001,
+        0x0000000000008082,
+        0x800000000000808A,
+        0x8000000080008000,
+        0x000000000000808B,
+        0x0000000080000001,
+        0x8000000080008081,
+        0x8000000000008009,
+        0x000000000000008A,
+        0x0000000000000088,
+        0x0000000080008009,
+        0x000000008000000A,
+        0x000000008000808B,
+        0x800000000000008B,
+        0x8000000000008089,
+        0x8000000000008003,
+        0x8000000000008002,
+        0x8000000000000080,
+        0x000000000000800A,
+        0x800000008000000A,
+        0x8000000080008081,
+        0x8000000000008080,
+        0x0000000080000001,
+        0x8000000080008008]
+
+    ## Rotation offsets
+    r=[[0,    36,     3,    41,    18]    ,
+       [1,    44,    10,    45,     2]    ,
+       [62,    6,    43,    15,    61]    ,
+       [28,   55,    25,    21,    56]    ,
+       [27,   20,    39,     8,    14]    ]
+
+    ## Generic utility functions
+
+    def rot(self,x,n):
+        """Bitwise rotation (to the left) of n bits considering the \
+        string of bits is w bits long"""
+
+        n = n%self.w
+        return ((x>>(self.w-n))+(x<<n))%(1<<self.w)
+
+    def fromHexStringToLane(self, string):
+        """Convert a string of bytes written in hexadecimal to a lane value"""
+
+        #Check that the string has an even number of characters i.e. whole number of bytes
+        if len(string)%2!=0:
+            raise KeccakError.KeccakError("The provided string does not end with a full byte")
+
+        #Perform the modification
+        temp=''
+        nrBytes=len(string)//2
+        for i in range(nrBytes):
+            offset=(nrBytes-i-1)*2
+            temp+=string[offset:offset+2]
+        return int(temp, 16)
+
+    def fromLaneToHexString(self, lane):
+        """Convert a lane value to a string of bytes written in hexadecimal"""
+
+        laneHexBE = (("%%0%dX" % (self.w//4)) % lane)
+        #Perform the modification
+        temp=''
+        nrBytes=len(laneHexBE)//2
+        for i in range(nrBytes):
+            offset=(nrBytes-i-1)*2
+            temp+=laneHexBE[offset:offset+2]
+        return temp.upper()
+
+    def printState(self, state, info):
+        """Print on screen the state of the sponge function preceded by \
+        string info
+        state: state of the sponge function
+        info: a string of characters used as identifier"""
+
+        print("Current value of state: %s" % (info))
+        for y in range(5):
+            line=[]
+            for x in range(5):
+                 line.append(hex(state[x][y]))
+            print('\t%s' % line)
+
+    ### Conversion functions String <-> Table (and vice-versa)
+
+    def convertStrToTable(self,string):
+
+
+        #Check that input paramaters
+        if self.w%8!= 0:
+            raise KeccakError("w is not a multiple of 8")
+        if len(string)!=2*(self.b)//8:
+            raise KeccakError.KeccakError("string can't be divided in 25 blocks of w bits\
+            i.e. string must have exactly b bits")
+
+        #Convert
+        output=[[0,0,0,0,0],
+                [0,0,0,0,0],
+                [0,0,0,0,0],
+                [0,0,0,0,0],
+                [0,0,0,0,0]]
+        for x in range(5):
+            for y in range(5):
+                offset=2*((5*y+x)*self.w)//8
+                output[x][y]=self.fromHexStringToLane(string[offset:offset+(2*self.w//8)])
+        return output
+
+    def convertTableToStr(self,table):
+
+        #Check input format
+        if self.w%8!= 0:
+            raise KeccakError.KeccakError("w is not a multiple of 8")
+        if (len(table)!=5) or (False in [len(row)==5 for row in table]):
+            raise KeccakError.KeccakError("table must b")
+
+        #Convert
+        output=['']*25
+        for x in range(5):
+            for y in range(5):
+                output[5*y+x]=self.fromLaneToHexString(table[x][y])
+        output =''.join(output).upper()
+        return output
+
+    def Round(self,A,RCfixed):
+        """Perform one round of computation as defined in the Keccak-f permutation
+        """
+
+        #Initialisation of temporary variables
+        B=[[0,0,0,0,0],
+           [0,0,0,0,0],
+           [0,0,0,0,0],
+           [0,0,0,0,0],
+           [0,0,0,0,0]]
+        C= [0,0,0,0,0]
+        D= [0,0,0,0,0]
+
+        #Theta step
+        for x in range(5):
+            C[x] = A[x][0]^A[x][1]^A[x][2]^A[x][3]^A[x][4]
+
+        for x in range(5):
+            D[x] = C[(x-1)%5]^self.rot(C[(x+1)%5],1)
+
+        for x in range(5):
+            for y in range(5):
+                A[x][y] = A[x][y]^D[x]
+
+        #Rho and Pi steps
+        for x in range(5):
+          for y in range(5):
+                B[y][(2*x+3*y)%5] = self.rot(A[x][y], self.r[x][y])
+
+        #Chi step
+        for x in range(5):
+            for y in range(5):
+                A[x][y] = B[x][y]^((~B[(x+1)%5][y]) & B[(x+2)%5][y])
+
+        #Iota step
+        A[0][0] = A[0][0]^RCfixed
+
+        return A
+
+    def KeccakF(self,A, verbose=False):
+        """Perform Keccak-f function on the state A
+        verbose: a boolean flag activating the printing of intermediate computations
+        """
+
+        if verbose:
+            self.printState(A,"Before first round")
+
+        for i in range(self.nr):
+            #NB: result is truncated to lane size
+            A = self.Round(A,self.RC[i]%(1<<self.w))
+
+            if verbose:
+                  self.printState(A,"Satus end of round #%d/%d" % (i+1,self.nr))
+
+        return A
+
+    ### Padding rule
+
+    def pad10star1(self, M, n):
+        """Pad M with the pad10*1 padding rule to reach a length multiple of r bits
+        M: message pair (length in bits, string of hex characters ('9AFC...')
+        n: length in bits (must be a multiple of 8)
+        Example: pad10star1([60, 'BA594E0FB9EBBD30'],8) returns 'BA594E0FB9EBBD93'
+        """
+
+        [my_string_length, my_string]=M
+
+        # Check the parameter n
+        if n%8!=0:
+            raise KeccakError.KeccakError("n must be a multiple of 8")
+
+        # Check the length of the provided string
+        if len(my_string)%2!=0:
+            #Pad with one '0' to reach correct length (don't know test
+            #vectors coding)
+            my_string=my_string+'0'
+        if my_string_length>(len(my_string)//2*8):
+            raise KeccakError.KeccakError("the string is too short to contain the number of bits announced")
+
+        nr_bytes_filled=my_string_length//8
+        nbr_bits_filled=my_string_length%8
+        l = my_string_length % n
+        if ((n-8) <= l <= (n-2)):
+            if (nbr_bits_filled == 0):
+                my_byte = 0
+            else:
+                my_byte=int(my_string[nr_bytes_filled*2:nr_bytes_filled*2+2],16)
+            my_byte=(my_byte>>(8-nbr_bits_filled))
+            my_byte=my_byte+2**(nbr_bits_filled)+2**7
+            my_byte="%02X" % my_byte
+            my_string=my_string[0:nr_bytes_filled*2]+my_byte
+        else:
+            if (nbr_bits_filled == 0):
+                my_byte = 0
+            else:
+                my_byte=int(my_string[nr_bytes_filled*2:nr_bytes_filled*2+2],16)
+            my_byte=(my_byte>>(8-nbr_bits_filled))
+            my_byte=my_byte+2**(nbr_bits_filled)
+            my_byte="%02X" % my_byte
+            my_string=my_string[0:nr_bytes_filled*2]+my_byte
+            while((8*len(my_string)//2)%n < (n-8)):
+                my_string=my_string+'00'
+            my_string = my_string+'80'
+
+        return my_string
+
+    def Keccak(self,M,r=1024,c=512,n=1024,verbose=False):
+        """Compute the Keccak[r,c,d] sponge function on message M
+        M: message pair (length in bits, string of hex characters ('9AFC...')
+        r: bitrate in bits (defautl: 1024)
+        c: capacity in bits (default: 576)
+        n: length of output in bits (default: 1024),
+        verbose: print the details of computations(default:False)
+        """
+
+        #Check the inputs
+        if (r<0) or (r%8!=0):
+            raise KeccakError.KeccakError('r must be a multiple of 8 in this implementation')
+        if (n%8!=0):
+            raise KeccakError.KeccakError('outputLength must be a multiple of 8')
+        self.setB(r+c)
+
+        if verbose:
+            print("\nCreate a Keccak function with (r=%d, c=%d (i.e. w=%d))" % (r,c,(r+c)//25))
+
+        #Compute lane length (in bits)
+        w=(r+c)//25
+
+        # Initialisation of state
+        S=[[0,0,0,0,0],
+           [0,0,0,0,0],
+           [0,0,0,0,0],
+           [0,0,0,0,0],
+           [0,0,0,0,0]]
+
+        #Padding of messages
+        P = self.pad10star1(M, r)
+
+        if verbose:
+            print("\nString ready to be absorbed: %s (will be completed by %d x '00')\n" % (P, c//8))
+
+        #Absorbing phase
+        for i in range((len(P)*8//2)//r):
+            Pi=self.convertStrToTable(P[i*(2*r//8):(i+1)*(2*r//8)]+'00'*(c//8))
+
+            for y in range(5):
+              for x in range(5):
+                  S[x][y] = S[x][y]^Pi[x][y]
+            S = self.KeccakF(S, verbose)
+
+        # Don't run Squeezing phase, this is what we get from monero's src/crypto/keccak.c output
+        if (verbose):
+            print("\nValue after absorption : \n%s" % (self.convertTableToStr(S)))
+        
+        #Squeezing phase
+        Z = ''
+        outputLength = n
+        while outputLength>0:
+            string=self.convertTableToStr(S)
+            Z = Z + string[:r*2//8]
+            outputLength -= r
+            if outputLength>0:
+                S = self.KeccakF(S, verbose)
+
+            # NB: done by block of length r, could have to be cut if outputLength
+            #     is not a multiple of r
+        
+        if verbose:
+            print("\nValue after squeezing :\n%s" % (self.convertTableToStr(S)))
+
+        return Z[:2*n//8]
 
 
 
@@ -1321,7 +1685,7 @@ def main(): #programme principal
 
         # Écriture des clef dans des fichiers
 
-        certificator_public_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Certificator\public_key.dat", "wb")  # destination file for writing (w)b
+        certificator_public_key_file = open(r"" + CURRENT_PATH + "\Certificator\public_key.dat", "wb")  # destination file for writing (w)b
         certificator_public_key_record =  certificator.public_key.to_bytes(128, byteorder ='big', signed=False)
         certificator_public_key_file.write(certificator_public_key_record)
         for _ in range(128):
@@ -1329,7 +1693,7 @@ def main(): #programme principal
              certificator_public_key_file.write(tag_record)
         certificator_public_key_file.close()
 
-        certificator_private_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Certificator\private_key.dat", "wb")  # destination file for writing (w)b
+        certificator_private_key_file = open(r"" + CURRENT_PATH + "\Certificator\private_key.dat", "wb")  # destination file for writing (w)b
         certificator_private_key_record =  certificator.private_key.to_bytes(20, byteorder ='big', signed=False)
         certificator_private_key_file.write(certificator_private_key_record)
         for _ in range(128):
@@ -1337,7 +1701,7 @@ def main(): #programme principal
              certificator_private_key_file.write(tag_record)
         certificator_private_key_file.close()
 
-        sender_public_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Sender\public_key.dat", "wb")  # destination file for writing (w)b
+        sender_public_key_file = open(r"" + CURRENT_PATH + "\Sender\public_key.dat", "wb")  # destination file for writing (w)b
         sender_public_key_record = sender.public_key.to_bytes(128, byteorder ='big', signed=False)
         sender_public_key_file.write(sender_public_key_record)
         for _ in range(128):
@@ -1345,7 +1709,7 @@ def main(): #programme principal
              sender_public_key_file.write(tag_record)
         sender_public_key_file.close()
 
-        sender_private_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Sender\private_key.dat", "wb")  # destination file for writing (w)b
+        sender_private_key_file = open(r"" + CURRENT_PATH + "\Sender\private_key.dat", "wb")  # destination file for writing (w)b
         sender_private_key_record = sender.private_key.to_bytes(20, byteorder ='big', signed=False)
         sender_private_key_file.write(sender_private_key_record)
         for _ in range(128):
@@ -1353,7 +1717,7 @@ def main(): #programme principal
              sender_private_key_file.write(tag_record)
         sender_private_key_file.close()
 
-        receiver_public_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Receiver\public_key.dat", "wb")  # destination file for writing (w)b
+        receiver_public_key_file = open(r"" + CURRENT_PATH + "\Receiver\public_key.dat", "wb")  # destination file for writing (w)b
         receiver_public_key_record = receiver.public_key.to_bytes(128, byteorder ='big', signed=False)
         receiver_public_key_file.write(receiver_public_key_record)
         for _ in range(128):
@@ -1361,7 +1725,7 @@ def main(): #programme principal
              receiver_public_key_file.write(tag_record)
         receiver_public_key_file.close()
 
-        receiver_private_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Receiver\private_key.dat", "wb")  # destination file for writing (w)b
+        receiver_private_key_file = open(r"" + CURRENT_PATH + "\Receiver\private_key.dat", "wb")  # destination file for writing (w)b
         receiver_private_key_record = receiver.private_key.to_bytes(20, byteorder ='big', signed=False)
         for _ in range(128):
              tag_record = secrets.randbits(128).to_bytes(16, byteorder ='big', signed=False)
@@ -1383,7 +1747,7 @@ def main(): #programme principal
     elif ( response == 2 ): # géneration d'un certificat
         receiver.certificate = certificator.sign_with_private_key(receiver.public_key,system)
         print(receiver.certificate)
-        receiver_certificate_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Certificator\certificate.pem", "wb")  # destination file for writing (w)b
+        receiver_certificate_file = open(r"" + CURRENT_PATH + "\Certificator\certificate.pem", "wb")  # destination file for writing (w)b
         certificator_record_s1 = receiver.certificate[0].to_bytes(128, byteorder ='big', signed=False)
         certificator_record_s2 = receiver.certificate[1].to_bytes(128, byteorder ='big', signed=False)
         certificator_record_hash = receiver.certificate[2].to_bytes(128, byteorder ='big', signed=False)
@@ -1491,7 +1855,7 @@ def main(): #programme principal
 
         # Écriture des clef dans des fichiers
 
-        certificator_public_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Certificator\public_key.dat", "wb")  # destination file for writing (w)b
+        certificator_public_key_file = open(r"" + CURRENT_PATH + "\Certificator\public_key.dat", "wb")  # destination file for writing (w)b
         certificator_public_key_record =  certificator.public_key.to_bytes(128, byteorder ='big', signed=False)
         certificator_public_key_file.write(certificator_public_key_record)
         for _ in range(128):
@@ -1499,7 +1863,7 @@ def main(): #programme principal
              certificator_public_key_file.write(tag_record)
         certificator_public_key_file.close()
 
-        certificator_private_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Certificator\private_key.dat", "wb")  # destination file for writing (w)b
+        certificator_private_key_file = open(r"" + CURRENT_PATH + "\Certificator\private_key.dat", "wb")  # destination file for writing (w)b
         certificator_private_key_record =  certificator.private_key.to_bytes(20, byteorder ='big', signed=False)
         certificator_private_key_file.write(certificator_private_key_record)
         for _ in range(128):
@@ -1507,7 +1871,7 @@ def main(): #programme principal
              certificator_private_key_file.write(tag_record)
         certificator_private_key_file.close()
 
-        sender_public_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Sender\public_key.dat", "wb")  # destination file for writing (w)b
+        sender_public_key_file = open(r"" + CURRENT_PATH + "\Sender\public_key.dat", "wb")  # destination file for writing (w)b
         sender_public_key_record = sender.public_key.to_bytes(128, byteorder ='big', signed=False)
         sender_public_key_file.write(sender_public_key_record)
         for _ in range(128):
@@ -1515,7 +1879,7 @@ def main(): #programme principal
              sender_public_key_file.write(tag_record)
         sender_public_key_file.close()
 
-        sender_private_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Sender\private_key.dat", "wb")  # destination file for writing (w)b
+        sender_private_key_file = open(r"" + CURRENT_PATH + "\Sender\private_key.dat", "wb")  # destination file for writing (w)b
         sender_private_key_record = sender.private_key.to_bytes(20, byteorder ='big', signed=False)
         sender_private_key_file.write(sender_private_key_record)
         for _ in range(128):
@@ -1523,7 +1887,7 @@ def main(): #programme principal
              sender_private_key_file.write(tag_record)
         sender_private_key_file.close()
 
-        receiver_public_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Receiver\public_key.dat", "wb")  # destination file for writing (w)b
+        receiver_public_key_file = open(r"" + CURRENT_PATH + "\Receiver\public_key.dat", "wb")  # destination file for writing (w)b
         receiver_public_key_record = receiver.public_key.to_bytes(128, byteorder ='big', signed=False)
         receiver_public_key_file.write(receiver_public_key_record)
         for _ in range(128):
@@ -1531,7 +1895,7 @@ def main(): #programme principal
              receiver_public_key_file.write(tag_record)
         receiver_public_key_file.close()
 
-        receiver_private_key_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Receiver\private_key.dat", "wb")  # destination file for writing (w)b
+        receiver_private_key_file = open(r"" + CURRENT_PATH + "\Receiver\private_key.dat", "wb")  # destination file for writing (w)b
         receiver_private_key_record = receiver.private_key.to_bytes(20, byteorder ='big', signed=False)
         for _ in range(128):
              tag_record = secrets.randbits(128).to_bytes(16, byteorder ='big', signed=False)
@@ -1543,7 +1907,7 @@ def main(): #programme principal
 
         receiver.certificate = certificator.sign_with_private_key(receiver.public_key,system)
         print(receiver.certificate)
-        receiver_certificate_file = open(r"C:\Users\val-r\OneDrive\Documents\Python Scripts\camelia-based-cryptosystem\Certificator\certificate.pem", "wb")  # destination file for writing (w)b
+        receiver_certificate_file = open(r"" + CURRENT_PATH + "\Certificator\certificate.pem", "wb")  # destination file for writing (w)b
         certificator_record_s1 = receiver.certificate[0].to_bytes(128, byteorder ='big', signed=False)
         certificator_record_s2 = receiver.certificate[1].to_bytes(128, byteorder ='big', signed=False)
         certificator_record_hash = receiver.certificate[2].to_bytes(128, byteorder ='big', signed=False)
@@ -1598,5 +1962,6 @@ system = System(p = 0, q = 0, g = 0)
 sender = Sender(private_key = 0, public_key_certificator = 0)
 receiver = Receiver(private_key = 0, public_key = 0, certificate = 0)
 certificator = Certificator(private_key = 0, public_key = 0)
+keccak=Keccak()
 
 main() #programme principal
